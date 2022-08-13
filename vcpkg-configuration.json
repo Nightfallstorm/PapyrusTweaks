@@ -1,0 +1,20 @@
+{
+    "registries": [
+        {
+            "kind": "git",
+            "repository": "https://gitlab.com/colorglass/vcpkg-colorglass",
+            "baseline": "5dffebb79a2c9cdc48bca6bcee3dfcf78eeeb300",
+            "packages": [
+                "commonlibsse",
+                "commonlibsse-po3-ae",
+                "commonlibsse-po3-se",
+                "commonlibvr",
+                "commonlibsse-ng",
+                "commonlibsse-ng-ae",
+                "commonlibsse-ng-se",
+                "commonlibsse-ng-vr",
+                "commonlibsse-ng-flatrim"
+            ]
+        }
+    ]
+}
