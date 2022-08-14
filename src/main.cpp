@@ -1,3 +1,7 @@
+#include "Hooks.h"
+
+using namespace Hooks;
+
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
 	switch (a_message->type) {
@@ -71,5 +75,8 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);
 
+	StackDumpHook::Install();
+	SecondaryVMOverstressHook::Install();
+	VMProcessUpdatesHook::Install();
 	return true;
 }
