@@ -59,19 +59,8 @@ namespace stl
 	}
 }
 
-#ifdef SKYRIM_AE
-#	define REL_ID(se, ae) REL::ID(ae)
-#	define OFFSET(se, ae) ae
-#	define OFFSET_3(se, ae, vr) ae
-#elif SKYRIMVR
-#	define REL_ID(se, ae) REL::ID(se)
-#	define OFFSET(se, ae) se
-#	define OFFSET_3(se, ae, vr) vr
-#else
-#	define REL_ID(se, ae) REL::ID(se)
-#	define OFFSET(se, ae) se
-#	define OFFSET_3(se, ae, vr) se
-#endif
+#define REL_ID(a_se, a_ae) REL::RelocationID(a_se, a_ae)
+#define REL_OFFSET(a_se, a_ae, a_vr) REL::VariantOffset(a_se, a_ae, a_vr)
 
 #define DLLEXPORT __declspec(dllexport)
 
