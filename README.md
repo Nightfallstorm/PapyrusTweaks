@@ -1,4 +1,4 @@
-# See Operating State
+# ScriptOverheadStatus
 
 TBD
 
@@ -24,11 +24,11 @@ TBD
 
 ## Building
 ```
-git clone https://github.com/Nightfallstorm/SeeOperatingState.git
-cd SeeOperatingState
-cmake --preset SeeOperatingState
+git clone https://github.com/Nightfallstorm/ScriptOverheadStatus.git
+cd ScriptOverheadStatus
+cmake --preset ScriptOverheadStatus
 cmake --build build --config Release
 ```
 
 ## License
-[MIT](LICENSE)
+[CC BY-SA 4.0](LICENSE)

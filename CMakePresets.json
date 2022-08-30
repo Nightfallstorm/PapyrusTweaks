@@ -52,7 +52,7 @@
         "vcpkg",
         "windows"
       ],
-      "name": "SeeOperatingState",
+      "name": "ScriptOverheadStatus",
       "toolset": "v143"
     }
   ],

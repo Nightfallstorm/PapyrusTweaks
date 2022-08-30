@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-set(NAME "seeoperatingstate")
+set(NAME "scriptoverheadstatus")
 set(VERSION 1.0.0)
 set(AE_VERSION 1)
 set(VR_VERSION 1)
