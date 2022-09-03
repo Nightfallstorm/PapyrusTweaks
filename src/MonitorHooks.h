@@ -1,6 +1,11 @@
 #pragma once
 
-namespace Hooks
+/* TODO:
+* 1. Monitor memory usage
+* 2. Monitor stack dumps
+* 3. 
+*/
+namespace MonitorHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
@@ -17,7 +22,7 @@ namespace Hooks
 	
 	static std::map<RE::BSScript::IFunction*, int> functionCount;
 
-	// TODO change hook from the logging of stack dumps to actual stack dump functiondddda
+	// TODO change hook from the logging of stack dumps to actual stack dump function
 	struct StackDumpHook
 	{
 		
@@ -130,4 +135,10 @@ namespace Hooks
 			logger::info("VM Process Updates hooked at offset " + fmt::format("{:x}", target.offset()));
 		}
 	};
+
+	static inline void InstallHooks()
+	{
+		StackDumpHook::Install();
+		VMProcessUpdatesHook::Install();
+	}
 }

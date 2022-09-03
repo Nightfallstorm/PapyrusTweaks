@@ -1,6 +1,6 @@
-#include "Hooks.h"
-
-using namespace Hooks;
+#include "ModifyHooks.h"
+#include "MonitorHooks.h"
+#include "LoggerHooks.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
@@ -76,7 +76,6 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);
 
-	StackDumpHook::Install();
-	VMProcessUpdatesHook::Install();
+	MonitorHooks::InstallHooks();
 	return true;
 }
