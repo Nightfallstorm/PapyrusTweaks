@@ -74,7 +74,7 @@ namespace Hooks
 			// 1.6.353: TODO
 			// 1.5.97: 14092AAA3 (Closest ID is 14092A9C0, 53195)
 			// 1.4.15: TODO
-			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 00000), REL_OFFSET(0xE3, 0x0, 0x0) };  // TODO: AE and VR
+			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 00000), OFFSET_3(0xE3, 0x0, 0x0) };  // TODO: AE and VR
 			write_thunk_call<StackDumpHook>(target.address());
 
 			logger::info("Stack Dump Detection hooked at address " + fmt::format("{:x}", target.address()));
@@ -123,7 +123,7 @@ namespace Hooks
 			// 1.5.97: 140921F6A (Closest ID is 140921F10, 53115)
 			// 1.4.15: TODO
 
-			REL::Relocation<std::uintptr_t> target{ REL_ID(98044, 00000), REL_OFFSET(0x63B, 0x0, 0x0) };  // TODO: AE and VR
+			REL::Relocation<std::uintptr_t> target{ REL_ID(98044, 00000), OFFSET_3(0x63B, 0x0, 0x0) };  // TODO: AE and VR
 			write_thunk_call<VMProcessUpdatesHook>(target.address());
 
 			logger::info("VM Process Updates hooked at address " + fmt::format("{:x}", target.address()));
