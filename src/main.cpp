@@ -20,8 +20,9 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	v.PluginVersion(Version::MAJOR);
 	v.PluginName(Version::PROJECT);
 	v.AuthorName("Nightfallstorm");
-	v.UsesAddressLibrary(true);
-	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST_AE });
+	v.UsesAddressLibrary();
+	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+	v.UsesNoStructs();
 
 	return v;
 }();
