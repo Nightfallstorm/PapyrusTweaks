@@ -105,7 +105,7 @@ namespace MonitorHooks
 				//logger::info("VM Overstress detected!");
 			}
 			auto suspendedStackCount = std::format("runningStacks: {}, suspendedStacks: {}", events.runningStacksCount, events.suspendedStacksCount);  // stacksToResume + stacksToSuspend + their overflows
-			RE::DebugNotification(suspendedStackCount.c_str());
+			//RE::DebugNotification(suspendedStackCount.c_str());
 			//float percent = static_cast<float>(RE::SkyrimVM::GetSingleton()->memoryPagePolicy.currentMemorySize) / 
 			//	static_cast<float>(RE::SkyrimVM::GetSingleton()->memoryPagePolicy.maxAllocatedMemory);
 		    //int realPercent = static_cast<int>(percent * 100.0);

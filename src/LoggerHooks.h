@@ -22,6 +22,7 @@ namespace LoggerHooks
 		T::func = trampoline.write_call<5>(a_src, T::thunk);
 	}
 	
+	// TODO: Test new none check!
 	struct ValidationSignaturesHook
 	{
 		// reimplementation of ValidateSignatureAndFixupNones, but with better logging
@@ -42,7 +43,8 @@ namespace LoggerHooks
 					RE::BSScript::TypeInfo type;
 					function->GetParam(index, name, type);
 					auto argument = a_varArray->data()[index];
-					if (!argument.FitsType(type)) {
+					// check if argument type doesn't fit AND the argument isn't none
+					if (!argument.FitsType(type) && !argument.IsNoneObject() && !argument.IsNoneArray()) {
 						mismatchedArgs = true;
 						break;	
 					}
@@ -107,9 +109,78 @@ namespace LoggerHooks
 		}
 	};
 
+	// TODO: Make this optional
+	struct GetFormFromFileHook
+	{
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ REL_ID(54832, 00000), OFFSET_3(0x7E, 0x0, 0x0) };  // TODO: AE and VR
+			REL::safe_fill(target.address(), REL::NOP, 0x5); // Remove the call to setup the log
+			REL::Relocation<std::uintptr_t> target2{ REL_ID(54832, 00000), OFFSET_3(0x97, 0x0, 0x0) };  // TODO: AE and VR
+			REL::safe_fill(target2.address(), REL::NOP, 0x4);  // Remove the call to log the GetFormFromFile error
+			logger::info("GetFormFromFileHook hooked at address " + fmt::format("{:x}", target.address()));
+			logger::info("GetFormFromFileHook at offset " + fmt::format("{:x}", target.offset()));
+		}
+	};
+
+	//"Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match"
+	struct BaseTypeMismatch
+	{
+		static inline auto newErrorMessage = "Script %s cannot be binded to %s because their base types do not match";
+		// Improve BaseTypeMismatch to distinguish when script not loaded vs script type incorrect
+		static bool thunk(const char* a_buffer, const std::size_t bufferCount, const char* a_format, const char* a_scriptName, const char* a_objectName)
+		{
+			if (a_scriptName == nullptr || a_objectName == nullptr || a_format == nullptr || a_buffer == nullptr) {
+				return func(a_buffer, bufferCount, a_format, a_scriptName, a_objectName);
+			}
+			auto VM = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+			
+			if (VM->TypeIsValid(a_scriptName))
+			{
+				RE::BSTSmartPointer<RE::BSScript::ObjectTypeInfo> info;
+				VM->GetScriptObjectType1(a_scriptName, info);
+				auto newScriptName = printScriptInfoInheritance(info.get());
+				return func(a_buffer, bufferCount, a_format, newScriptName.c_str(), a_objectName);
+			} else {
+				const char* a_newFormat = "Script %s cannot be bound to %s because the script does not exist or is not currently loaded";
+				return func(a_buffer, bufferCount, a_newFormat, a_scriptName, a_objectName);
+			}
+		}
+
+		// expands script name to include inheritance
+		static std::string printScriptInfoInheritance(RE::BSScript::ObjectTypeInfo* scriptInfo) {
+			// example: CustomQuest (CustomQuest->Quest->Form)
+			std::string newScriptName = std::string(scriptInfo->name.c_str()) + " (" + std::string(scriptInfo->name.c_str()) + "->";
+			while ((scriptInfo = scriptInfo->GetParent()) != nullptr) {
+				newScriptName = newScriptName + scriptInfo->name.c_str() + "->";
+			};
+			logger::info("{}", newScriptName);
+			std::string result = newScriptName.substr(0, newScriptName.size() - 2) + ")";
+			logger::info("{}", result);
+			return result;
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ REL_ID(52730, 00000), OFFSET_3(0x3B2, 0x0, 0x0) };  // TODO: AE and VR
+			write_thunk_call<BaseTypeMismatch>(target.address());
+
+			logger::info("BaseTypeMismatch hooked at address " + fmt::format("{:x}", target.address()));
+			logger::info("BaseTypeMismatch at offset " + fmt::format("{:x}", target.offset()));
+		}
+	};
+
+	
+
 	static inline void InstallHooks()
 	{
 		ValidationSignaturesHook::Install();
+		GetFormFromFileHook::Install();
+		BaseTypeMismatch::Install();
 	}
 	
 }

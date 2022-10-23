@@ -7,7 +7,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	switch (a_message->type) {
 	case SKSE::MessagingInterface::kPostLoad:
 		break;
-	case SKSE::MessagingInterface::kDataLoaded:		
+	case SKSE::MessagingInterface::kDataLoaded:	
 		break;
 	case SKSE::MessagingInterface::kNewGame:
 	default:
@@ -68,7 +68,6 @@ void InitializeLog()
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-
 	logger::info("loaded plugin");
 
 	SKSE::Init(a_skse);
@@ -77,5 +76,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	messaging->RegisterListener(MessageHandler);
 
 	MonitorHooks::InstallHooks();
+	ModifyHooks::InstallHooks();
+	LoggerHooks::InstallHooks();
 	return true;
 }
