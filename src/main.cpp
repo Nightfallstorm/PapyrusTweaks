@@ -15,19 +15,19 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 		break;
 	}
 }
-#ifdef SKYRIM_AE
+
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	SKSE::PluginVersionData v;
 	v.PluginVersion(Version::MAJOR);
 	v.PluginName(Version::PROJECT);
 	v.AuthorName("Nightfallstorm");
-	v.UsesAddressLibrary();
-	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
-	v.UsesNoStructs();
+	v.UsesAddressLibrary(true);
+	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST_AE });
+	v.UsesNoStructs(true);
 
 	return v;
 }();
-#else
+
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
 	a_info->infoVersion = SKSE::PluginInfo::kVersion;
@@ -43,7 +43,6 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 
 	return true;
 }
-#endif
 
 void InitializeLog()
 {

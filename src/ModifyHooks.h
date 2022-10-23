@@ -10,16 +10,6 @@ namespace ModifyHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
-	// Putting this here avoids a compile error when used in PCH
-	template <class T>
-	static void write_thunk_call(std::uintptr_t a_src)
-	{
-		auto& trampoline = SKSE::GetTrampoline();
-		SKSE::AllocTrampoline(14);
-
-		T::func = trampoline.write_call<5>(a_src, T::thunk);
-	}	
-
 	struct StackOverFlowHook
 	{
 		static RE::BSFixedString* thunk(std::uint64_t unk0, RE::BSScript::Stack* a_stack, std::uint64_t* a_funcCallQuery)
@@ -44,8 +34,8 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), OFFSET_3(0x7F, 0x7F, 0x7F) };
-			write_thunk_call<StackOverFlowHook>(target.address());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x7F, 0x7F, 0x7F) };
+			stl::write_thunk_call<StackOverFlowHook>(target.address());
 
 			logger::info("StackFrameOverFlow hooked at address " + fmt::format("{:x}", target.address()));
 			logger::info("StackFrameOverFlow hooked at offset " + fmt::format("{:x}", target.offset()));
@@ -68,8 +58,8 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), OFFSET_3(0x963, 0x97A, 0x963) };
-			write_thunk_call<StackOverFlowLogHook>(target.address());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x963, 0x97A, 0x963) };
+			stl::write_thunk_call<StackOverFlowLogHook>(target.address());
 
 			logger::info("StackFrameOverFlowLog hooked at address " + fmt::format("{:x}", target.address()));
 			logger::info("StackFrameOverFlowLog hooked at offset " + fmt::format("{:x}", target.offset()));
@@ -82,34 +72,45 @@ namespace ModifyHooks
 		{
 			PapyrusOpsModifier(std::uintptr_t beginLoop, std::uintptr_t endLoop)
 			{
-				inc(r14d);
-				cmp(r14d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
-				mov(r8d, 10760);
-				jb("KeepLooping");
-				mov(rcx, endLoop);
-				jmp(rcx);
-				L("KeepLooping");
-				mov(rcx, beginLoop);
-				jmp(rcx);
+				if (REL::Module::IsAE()) {
+					inc(r15d);
+					cmp(r15d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
+					jb("KeepLooping");
+					mov(rcx, endLoop);
+					jmp(rcx);
+					L("KeepLooping");
+					mov(rcx, beginLoop);
+					jmp(rcx);
+				} else {
+					inc(r14d);
+					cmp(r14d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
+					mov(r8d, 10760);
+					jb("KeepLooping");
+					mov(rcx, endLoop);
+					jmp(rcx);
+					L("KeepLooping");
+					mov(rcx, beginLoop);
+					jmp(rcx);
+				}
 			}
 		};
 
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			
-			REL::Relocation<std::uintptr_t> target{ REL_ID(98520, 0), OFFSET_3(0x498, 0x0, 0x0) };  // TODO: AE, VR looks to match needs testing
-			REL::Relocation<std::uintptr_t> beginLoop{ REL_ID(98520, 0), OFFSET_3(0xC0, 0x0, 0x0) };
-			REL::Relocation<std::uintptr_t> endLoop{ REL_ID(98520, 0), OFFSET_3(0x4AB, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98520, 105176), REL::VariantOffset(0x498, 0xAB1, 0x498) };
+			REL::Relocation<std::uintptr_t> beginLoop{ RELOCATION_ID(98520, 105176), REL::VariantOffset(0xC0, 0xB0, 0xC0) };
+			REL::Relocation<std::uintptr_t> endLoop{ RELOCATION_ID(98520, 105176), REL::VariantOffset(0x4AB, 0xABE, 0x4AB) };
 
 			auto newCompareCheck = PapyrusOpsModifier(beginLoop.address(), endLoop.address());
-			REL::safe_fill(target.address(), REL::NOP, 0x13);
+			int fillRange = REL::Module::IsAE() ? 0xD : 0x13;
+			REL::safe_fill(target.address(), REL::NOP, fillRange);
 			auto& trampoline = SKSE::GetTrampoline();
 			SKSE::AllocTrampoline(newCompareCheck.getSize());
 			auto result = trampoline.allocate(newCompareCheck);
 			auto& trampoline2 = SKSE::GetTrampoline();
 			SKSE::AllocTrampoline(14);
-			auto res = trampoline2.write_branch<5>(target.address(), (std::uintptr_t) result);
+			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
 			logger::info("PapyrusOpsPerFrameHook hooked at address " + fmt::format("{:x}", target.address()));
 			logger::info("PapyrusOpsPerFrameHook hooked at offset " + fmt::format("{:x}", target.offset()));
