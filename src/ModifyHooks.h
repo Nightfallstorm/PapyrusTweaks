@@ -110,7 +110,7 @@ namespace ModifyHooks
 		static inline void Install()
 		{
 			
-			REL::Relocation<std::uintptr_t> target{ REL_ID(98520, 0), OFFSET_3(0x498, 0x0, 0x0) };  // TODO: AE AND VR
+			REL::Relocation<std::uintptr_t> target{ REL_ID(98520, 0), OFFSET_3(0x498, 0x0, 0x0) };  // TODO: AE, VR looks to match needs testing
 			REL::Relocation<std::uintptr_t> beginLoop{ REL_ID(98520, 0), OFFSET_3(0xC0, 0x0, 0x0) };
 			REL::Relocation<std::uintptr_t> endLoop{ REL_ID(98520, 0), OFFSET_3(0x4AB, 0x0, 0x0) };
 			// TODO: make 5000 a setting for the ini/toml
