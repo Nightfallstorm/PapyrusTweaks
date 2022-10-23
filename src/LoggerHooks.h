@@ -21,7 +21,7 @@ namespace LoggerHooks
 
 		T::func = trampoline.write_call<5>(a_src, T::thunk);
 	}
-	
+
 	// TODO: Test new none check!
 	struct ValidationSignaturesHook
 	{
@@ -46,7 +46,7 @@ namespace LoggerHooks
 					// check if argument type doesn't fit AND the argument isn't none
 					if (!argument.FitsType(type) && !argument.IsNoneObject() && !argument.IsNoneArray()) {
 						mismatchedArgs = true;
-						break;	
+						break;
 					}
 				}
 				if (mismatchedArgs) {
@@ -91,8 +91,7 @@ namespace LoggerHooks
 			std::string result = std::format(
 				"{}.{}({})",
 				function->GetObjectTypeName().c_str(),
-				function->GetName().c_str(), params
-			);
+				function->GetName().c_str(), params);
 
 			return result;
 		}
@@ -104,8 +103,8 @@ namespace LoggerHooks
 			REL::Relocation<std::uintptr_t> target{ REL_ID(98130, 00000), OFFSET_3(0x63D, 0x0, 0x0) };  // TODO: AE and VR
 			write_thunk_call<ValidationSignaturesHook>(target.address());
 
-			logger::info("ValidationSignaturesHook hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("ValidationSignaturesHook at offset " + fmt::format("{:x}", target.offset()));
+			logger::info("ValidationSignaturesHook hooked at address {}", fmt::format("{:x}", target.address()));
+			logger::info("ValidationSignaturesHook at offset {}", fmt::format("{:x}", target.offset()));
 		}
 	};
 
@@ -115,12 +114,12 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(54832, 00000), OFFSET_3(0x7E, 0x0, 0x0) };  // TODO: AE and VR
-			REL::safe_fill(target.address(), REL::NOP, 0x5); // Remove the call to setup the log
+			REL::Relocation<std::uintptr_t> target{ REL_ID(54832, 00000), OFFSET_3(0x7E, 0x0, 0x0) };   // TODO: AE and VR
+			REL::safe_fill(target.address(), REL::NOP, 0x5);                                            // Remove the call to setup the log
 			REL::Relocation<std::uintptr_t> target2{ REL_ID(54832, 00000), OFFSET_3(0x97, 0x0, 0x0) };  // TODO: AE and VR
-			REL::safe_fill(target2.address(), REL::NOP, 0x4);  // Remove the call to log the GetFormFromFile error
-			logger::info("GetFormFromFileHook hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("GetFormFromFileHook at offset " + fmt::format("{:x}", target.offset()));
+			REL::safe_fill(target2.address(), REL::NOP, 0x4);                                           // Remove the call to log the GetFormFromFile error
+			logger::info("GetFormFromFileHook hooked at address {}", fmt::format("{:x}", target.address()));
+			logger::info("GetFormFromFileHook at offset {}", fmt::format("{:x}", target.offset()));
 		}
 	};
 
@@ -135,9 +134,8 @@ namespace LoggerHooks
 				return func(a_buffer, bufferCount, a_format, a_scriptName, a_objectName);
 			}
 			auto VM = RE::BSScript::Internal::VirtualMachine::GetSingleton();
-			
-			if (VM->TypeIsValid(a_scriptName))
-			{
+
+			if (VM->TypeIsValid(a_scriptName)) {
 				RE::BSTSmartPointer<RE::BSScript::ObjectTypeInfo> info;
 				VM->GetScriptObjectType1(a_scriptName, info);
 				auto newScriptName = printScriptInfoInheritance(info.get());
@@ -149,7 +147,8 @@ namespace LoggerHooks
 		}
 
 		// expands script name to include inheritance
-		static std::string printScriptInfoInheritance(RE::BSScript::ObjectTypeInfo* scriptInfo) {
+		static std::string printScriptInfoInheritance(RE::BSScript::ObjectTypeInfo* scriptInfo)
+		{
 			// example: CustomQuest (CustomQuest->Quest->Form)
 			std::string newScriptName = std::string(scriptInfo->name.c_str()) + " (" + std::string(scriptInfo->name.c_str()) + "->";
 			while ((scriptInfo = scriptInfo->GetParent()) != nullptr) {
@@ -169,12 +168,10 @@ namespace LoggerHooks
 			REL::Relocation<std::uintptr_t> target{ REL_ID(52730, 00000), OFFSET_3(0x3B2, 0x0, 0x0) };  // TODO: AE and VR
 			write_thunk_call<BaseTypeMismatch>(target.address());
 
-			logger::info("BaseTypeMismatch hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("BaseTypeMismatch at offset " + fmt::format("{:x}", target.offset()));
+			logger::info("BaseTypeMismatch hooked at address {}", fmt::format("{:x}", target.address()));
+			logger::info("BaseTypeMismatch at offset {}", fmt::format("{:x}", target.offset()));
 		}
 	};
-
-	
 
 	static inline void InstallHooks()
 	{
@@ -182,5 +179,5 @@ namespace LoggerHooks
 		GetFormFromFileHook::Install();
 		BaseTypeMismatch::Install();
 	}
-	
+
 }
