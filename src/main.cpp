@@ -1,6 +1,6 @@
 #include "ModifyHooks.h"
-#include "MonitorHooks.h"
 #include "LoggerHooks.h"
+#include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
@@ -76,7 +76,12 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);
 
-	MonitorHooks::InstallHooks();
+	try {
+		Settings::GetSingleton()->Load();
+	} catch (...) {
+		logger::error("Exception caught when loading settings! Default settings will be used");
+	}
+
 	ModifyHooks::InstallHooks();
 	LoggerHooks::InstallHooks();
 	return true;

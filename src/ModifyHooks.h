@@ -1,5 +1,6 @@
 #pragma once
 #include <xbyak/xbyak.h>
+#include "Settings.h"
 /* TODO:
 * 1. Throw stack overflows to prevent a script from causing FPS drops when 1000+ calls deep in a stack - Done!
 * 2. Increase Stack Dump timeout threshold (maybe increase stackcount threshold too?)
@@ -79,10 +80,10 @@ namespace ModifyHooks
 	{
 		struct PapyrusOpsModifier : Xbyak::CodeGenerator
 		{
-			PapyrusOpsModifier(int newPapyrusOpsPerFrame, std::uintptr_t beginLoop, std::uintptr_t endLoop)
+			PapyrusOpsModifier(std::uintptr_t beginLoop, std::uintptr_t endLoop)
 			{
 				inc(r14d);
-				cmp(r14d, newPapyrusOpsPerFrame);
+				cmp(r14d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
 				mov(r8d, 10760);
 				jb("KeepLooping");
 				mov(rcx, endLoop);
@@ -100,8 +101,8 @@ namespace ModifyHooks
 			REL::Relocation<std::uintptr_t> target{ REL_ID(98520, 0), OFFSET_3(0x498, 0x0, 0x0) };  // TODO: AE, VR looks to match needs testing
 			REL::Relocation<std::uintptr_t> beginLoop{ REL_ID(98520, 0), OFFSET_3(0xC0, 0x0, 0x0) };
 			REL::Relocation<std::uintptr_t> endLoop{ REL_ID(98520, 0), OFFSET_3(0x4AB, 0x0, 0x0) };
-			// TODO: make 5000 a setting for the ini/toml
-			auto newCompareCheck = PapyrusOpsModifier(5000, beginLoop.address(), endLoop.address());
+
+			auto newCompareCheck = PapyrusOpsModifier(beginLoop.address(), endLoop.address());
 			REL::safe_fill(target.address(), REL::NOP, 0x13);
 			auto& trampoline = SKSE::GetTrampoline();
 			SKSE::AllocTrampoline(newCompareCheck.getSize());
@@ -117,8 +118,12 @@ namespace ModifyHooks
 
 	static inline void InstallHooks()
 	{
-		StackOverFlowHook::Install();
-		StackOverFlowLogHook::Install();
+		auto settings = Settings::GetSingleton();
+		if (settings->fixes.recursionFix) {
+			StackOverFlowHook::Install();
+			StackOverFlowLogHook::Install();
+		}
+		
 		PapyrusOpsPerFrameHook::Install();
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 #pragma warning(2: 4235)
 #include "RE/S/ScriptFunction.h"
+#include "Settings.h"
 #include <string.h>
 /* TODO:
 * 1. "Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match" - 
@@ -175,9 +176,13 @@ namespace LoggerHooks
 
 	static inline void InstallHooks()
 	{
-		ValidationSignaturesHook::Install();
-		GetFormFromFileHook::Install();
-		BaseTypeMismatch::Install();
+		auto settings = Settings::GetSingleton();
+		//ValidationSignaturesHook::Install(); TODO: Rework
+		if (settings->tweaks.disableGetFormFromFile) {
+			GetFormFromFileHook::Install();
+		}
+		if (settings->tweaks.improveBaseTypeMismatch) {
+			BaseTypeMismatch::Install();
+		}
 	}
-
 }
