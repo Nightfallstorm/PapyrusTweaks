@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-set(NAME "scriptoverheadstatus")
+set(NAME "PapyrusTweaks")
 set(VERSION 0.1.0)
 set(AE_VERSION 1)
 set(VR_VERSION 1)
