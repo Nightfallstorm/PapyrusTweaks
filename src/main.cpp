@@ -1,15 +1,15 @@
 #include "ModifyHooks.h"
 #include "LoggerHooks.h"
+#include "ExperimentalHooks.h"
 #include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
 	switch (a_message->type) {
-	case SKSE::MessagingInterface::kPostLoad:
+	case SKSE::MessagingInterface::kPreLoadGame:
+		logger::info("Pre load game");
+		ExperimentalHooks::InstallHooks();
 		break;
-	case SKSE::MessagingInterface::kDataLoaded:	
-		break;
-	case SKSE::MessagingInterface::kNewGame:
 	default:
 		break;
 	}

@@ -22,11 +22,14 @@ public:
 		std::uint32_t maxOpsPerFrame{ 500 };
 		bool disableGetFormFromFile{ false };
 		bool improveBaseTypeMismatch{ true };
+		int stackDumpTimeoutThreshold{ 15000 };
 	} tweaks;
 
 	struct Experimental
 	{
 		void Load(CSimpleIniA& a_ini);
+
+		bool speedUpGameGetPlayer{ false };
 
 	} experimental;
 
@@ -45,7 +48,7 @@ private:
 				a_value = static_cast<T>(a_ini.GetDoubleValue(a_section, a_key, a_value));
 				a_ini.SetDoubleValue(a_section, a_key, a_value, a_comment);
 
-				GetSingleton()->settingsMap.emplace(a_key, a_value != 1.0);  //for the one setting that uses a float (Voice Modulation)
+				GetSingleton()->settingsMap.emplace(a_key, a_value != 1.0); 
 			} else if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
 				a_value = string::lexical_cast<T>(a_ini.GetValue(a_section, a_key, std::to_string(a_value).c_str()));
 				a_ini.SetValue(a_section, a_key, std::to_string(a_value).c_str(), a_comment);
