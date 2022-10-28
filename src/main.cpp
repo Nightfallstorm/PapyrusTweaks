@@ -1,6 +1,7 @@
 #include "ModifyHooks.h"
 #include "LoggerHooks.h"
 #include "ExperimentalHooks.h"
+#include "VRHooks.h"
 #include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
@@ -84,5 +85,6 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	ModifyHooks::InstallHooks();
 	LoggerHooks::InstallHooks();
+	VRHooks::InstallHooks();
 	return true;
 }
