@@ -52,5 +52,5 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 	const char* section = "Experimental";
 
 	detail::get_value(a_ini, speedUpGameGetPlayer, section, "bSpeedUpGetPlayer", ";Speed up \"Game.GetPlayer\" calls by desyncing it from framerate. In theory, this shouldn't cause issues, but is experimental as this is not fully tested");
-	detail::get_value(a_ini, disableScriptsInPlayroom, section, "bDisableScriptsInPlayroomVR", ";Pauses all non-playroom scripts while in the VR playroom. There isn't any known bugs with this, but it is experimental just in case");
+	detail::get_value(a_ini, disableScriptsInPlayroom, section, "bDisableScriptsInPlayroomVR", ";(VR-ONLY) Pauses all non-playroom scripts while in the VR playroom. There isn't any known bugs with this, but it is experimental just in case");
 }
