@@ -7,14 +7,6 @@ public:
 
 	void Load();
 
-	struct Fixes
-	{
-		void Load(CSimpleIniA& a_ini);
-
-		bool recursionFix{ true };
-
-	} fixes;
-
 	struct Tweaks
 	{
 		void Load(CSimpleIniA& a_ini);
@@ -22,6 +14,9 @@ public:
 		std::uint32_t maxOpsPerFrame{ 500 };
 		bool disableGetFormFromFile{ false };
 		bool improveBaseTypeMismatch{ true };
+		bool improveValidateArgsErrors{ true };
+		bool disableNoPropertyOnScript{ false };
+		bool disableMissingScriptError{ false };
 		int stackDumpTimeoutThreshold{ 15000 };
 	} tweaks;
 
@@ -48,7 +43,7 @@ private:
 				a_value = static_cast<T>(a_ini.GetDoubleValue(a_section, a_key, a_value));
 				a_ini.SetDoubleValue(a_section, a_key, a_value, a_comment);
 
-				GetSingleton()->settingsMap.emplace(a_key, a_value != 1.0); 
+				GetSingleton()->settingsMap.emplace(a_key, a_value != 1.0);
 			} else if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
 				a_value = string::lexical_cast<T>(a_ini.GetValue(a_section, a_key, std::to_string(a_value).c_str()));
 				a_ini.SetValue(a_section, a_key, std::to_string(a_value).c_str(), a_comment);

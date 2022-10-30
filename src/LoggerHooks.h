@@ -3,11 +3,8 @@
 #include "RE/S/ScriptFunction.h"
 #include "Settings.h"
 #include <string.h>
-/* TODO:
-* 1. "Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match" - 
-* show full inheritance of MCMFlaskUtilsScript and show full types of FlaskUtilMCM
-* 2. "Error: File "Telengard.esp" does not exist or is not currently loaded." - Allow optional setting to turn this error off
-*/
+
+#undef GetObject
 namespace LoggerHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
@@ -23,60 +20,74 @@ namespace LoggerHooks
 		T::func = trampoline.write_call<5>(a_src, T::thunk);
 	}
 
-	// TODO: Test new none check!
 	struct ValidationSignaturesHook
 	{
-		// reimplementation of ValidateSignatureAndFixupNones, but with better logging
-		static bool thunk(RE::BSScript::IFunction** a_function, RE::BSScrapArray<RE::BSScript::Variable>* a_varArray, char* a_outString, std::int32_t a_bufferSize)
+		static std::uint64_t thunk(RE::BSScript::IFunction** a_function, RE::BSScrapArray<RE::BSScript::Variable>* a_varArray, char* a_outString, std::int32_t a_bufferSize)
 		{
-			if (a_outString != nullptr) {
-				*a_outString = 0;
-			} else {
-				char temp[1024];
-				a_outString = temp;
-			}
-			auto function = *a_function;
-			int paramCount = function->GetParamCount();
-			if (paramCount == a_varArray->size()) {
-				bool mismatchedArgs = false;
-				for (int index = 0; index < paramCount; index++) {
-					RE::BSFixedString name;
-					RE::BSScript::TypeInfo type;
-					function->GetParam(index, name, type);
-					auto argument = a_varArray->data()[index];
-					// check if argument type doesn't fit AND the argument isn't none
-					if (!argument.FitsType(type) && !argument.IsNoneObject() && !argument.IsNoneArray()) {
-						mismatchedArgs = true;
-						break;
-					}
-				}
-				if (mismatchedArgs) {
+			std::uint64_t result = func(a_function, a_varArray, a_outString, a_bufferSize);
+			auto& function = *a_function;
+			if (a_outString[0]) {
+				// error occurred, let's improve it
+				if (findStringIC(a_outString, "Type mismatch for argument")) {
+					logger::info("Type mismatch");
 					char mismatchedArgString[1072];
 					std::string mismatchedFormat = "Function %s received incompatible arguments! Received types %s instead!";
-					std::string types = "(";
-					for (int i = 0; i < a_varArray->size(); i++) {
-						types = types + a_varArray->data()[i].GetType().TypeAsString();
-						if ((i + 1) < function->GetParamCount()) {
-							types = types + ",";
-						}
-					}
-					types = types + ")";
+					std::string types = ConvertArgsToTypesAsString(a_varArray);
 					snprintf(mismatchedArgString, 1024, mismatchedFormat.c_str(),
 						ConvertFunctionToString(function).c_str(), types.c_str());
-					strcat_s(a_outString, a_bufferSize, mismatchedArgString);
+					strcpy_s(a_outString, a_bufferSize, mismatchedArgString);
+				} else if (findStringIC(a_outString, "Incorrect number of arguments passed")) {
+					logger::info("Incorrect number of arguments passed");
+					std::string incorrectArgSizeFormat = "Incorrect number of arguments passed to function %s. Expected %u, got %u instead!. ";
+					std::string functionName = ConvertFunctionToString(*a_function);
+					char incorrectArgString[1072];
+					snprintf(incorrectArgString, 1024, incorrectArgSizeFormat.c_str(), functionName.c_str(), function->GetParamCount(), a_varArray->size());
+					strcpy_s(a_outString, a_bufferSize, incorrectArgString);
+				} else if (findStringIC(a_outString, "Passing NONE to non-object argument")) {
+					logger::info("Passing NONE to non-object argument");
+					char mismatchedArgString[1072];
+					std::string mismatchedFormat = "Function %s received NONE to non-object argument! Received types %s instead!";
+					std::string types = ConvertArgsToTypesAsString(a_varArray);
+					snprintf(mismatchedArgString, 1024, mismatchedFormat.c_str(),
+						ConvertFunctionToString(function).c_str(), types.c_str());
+					strcpy_s(a_outString, a_bufferSize, mismatchedArgString);
+				} else {
+					// Should never happen
 				}
-			} else {
-				std::string incorrectArgSizeFormat = "Incorrect number of arguments passed to function %s. Expected %u, got %u instead!. ";
-				std::string functionName = ConvertFunctionToString(function);
-				char incorrectArgString[1072];
-				snprintf(incorrectArgString, 1024, incorrectArgSizeFormat.c_str(), functionName.c_str(), paramCount, a_varArray->size());
-				strcat_s(a_outString, a_bufferSize, incorrectArgString);
 			}
-			char discard[1024];
-			// Call original validation function to keep behavior the same, but throw away the errors generated from it in favor of ours
-			return func(a_function, a_varArray, discard, a_bufferSize);
+			return result;
+
 		}
 
+		// copied from stackoverflow. Just checks if string contained in other string no case sensitivity
+		static bool findStringIC(const std::string& strHaystack, const std::string& strNeedle)
+		{
+			auto it = std::search(
+				strHaystack.begin(), strHaystack.end(),
+				strNeedle.begin(), strNeedle.end(),
+				[](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); });
+			return (it != strHaystack.end());
+		}
+
+		static std::string ConvertArgsToTypesAsString(RE::BSScrapArray<RE::BSScript::Variable>* a_varArray) {
+			std::string types = "(";
+			for (int i = 0; i < a_varArray->size(); i++) {
+				auto& variable = a_varArray->data()[i];
+				if (variable.IsObject() && variable.GetObject() && variable.GetObject().get()) {
+					types = types + variable.GetObject().get()->type.get()->GetName();
+				} else if (variable.IsObjectArray() && variable.GetArray() && variable.GetArray().get()) {
+					types = types + variable.GetArray().get()->type_info().TypeAsString();
+				} else {
+					types = types + a_varArray->data()[i].GetType().TypeAsString();
+				}
+				if ((i + 1) < a_varArray->size()) {
+					types = types + ",";
+				}
+			}
+			types = types + ")";
+
+			return types;
+		}
 		static std::string ConvertFunctionToString(RE::BSScript::IFunction* function)
 		{
 			std::string params = "";
@@ -109,7 +120,7 @@ namespace LoggerHooks
 		}
 	};
 
-	// TODO: Make this optional
+	// "Error: File \" % s \" does not exist or is not currently loaded."
 	struct GetFormFromFileHook
 	{
 		// Install our hook at the specified address
@@ -124,7 +135,7 @@ namespace LoggerHooks
 		}
 	};
 
-	//"Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match"
+	// "Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match"
 	struct BaseTypeMismatch
 	{
 		static inline auto newErrorMessage = "Script %s cannot be binded to %s because their base types do not match";
@@ -174,15 +185,53 @@ namespace LoggerHooks
 		}
 	};
 
+	// "Property %s on script %s attached to %s cannot be initialized because the script no longer contains that property"
+	struct NoPropertyOnScriptHook
+	{
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ REL_ID(52767, 00000), OFFSET_3(0x6FC, 0x0, 0x0) };  // TODO: AE and VR
+			REL::safe_fill(target.address(), REL::NOP, 0x3);                                            // erase the call to log the warning
+
+			logger::info("NoPropertyOnScript installed at address {}", fmt::format("{:x}", target.address()));
+			logger::info("NoPropertyOnScript installed at offset {}", fmt::format("{:x}", target.offset()));
+		}
+	};
+
+	// "Cannot open store for class \"%s\", missing file?"
+	struct DisableMissingScriptError
+	{
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ REL_ID(97831, 00000), OFFSET_3(0xC4, 0x0, 0x0) };  // TODO: AE and VR
+			std::byte newJump[] = { (std::byte)0xe9, (std::byte)0xbc, (std::byte)0x00, (std::byte)0x00, (std::byte)0x00 };
+			REL::safe_fill(target.address(), REL::NOP, 0x9);
+			REL::safe_write(target.address(), newJump, 0x5);
+
+			logger::info("DisableMissingScriptError installed at address {}", fmt::format("{:x}", target.address()));
+			logger::info("DisableMissingScriptError installed at offset {}", fmt::format("{:x}", target.offset()));
+		}
+	};
+
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
-		//ValidationSignaturesHook::Install(); TODO: Rework
+		if (settings->tweaks.improveValidateArgsErrors) {
+			ValidationSignaturesHook::Install();
+		}
 		if (settings->tweaks.disableGetFormFromFile) {
 			GetFormFromFileHook::Install();
 		}
 		if (settings->tweaks.improveBaseTypeMismatch) {
 			BaseTypeMismatch::Install();
+		}
+		if (settings->tweaks.disableNoPropertyOnScript) {
+			NoPropertyOnScriptHook::Install();
+		}
+		if (settings->tweaks.disableMissingScriptError) {
+			DisableMissingScriptError::Install();
 		}
 	}
 }

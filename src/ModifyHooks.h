@@ -158,11 +158,6 @@ namespace ModifyHooks
 
 	static inline void InstallHooks()
 	{
-		auto settings = Settings::GetSingleton();
-		if (settings->fixes.recursionFix) {
-			//StackOverFlowHook::Install();
-			//StackOverFlowLogHook::Install();
-		}
 		StackDumpTimeoutHook::Install();
 		PapyrusOpsPerFrameHook::Install();
 	}
