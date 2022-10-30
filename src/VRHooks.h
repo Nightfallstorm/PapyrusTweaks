@@ -1,6 +1,6 @@
 #pragma once
-#include <xbyak/xbyak.h>
 #include "Settings.h"
+#include <xbyak/xbyak.h>
 
 namespace VRHooks
 {
@@ -12,8 +12,7 @@ namespace VRHooks
 	{
 		// keep original checks, but also add VRPlayroom check for non-VRPlayroom scripts
 		static bool stackCheckIntercept(
-			std::uint32_t a_objectPackedData, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery
-		)
+			std::uint32_t a_objectPackedData, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery)
 		{
 			// original check
 			if ((a_objectPackedData & 1) == 0 || ((a_objectPackedData & 2) == 0 && a_stack->stackType.underlying() - 1 > 1)) {
@@ -31,15 +30,13 @@ namespace VRHooks
 			}
 
 			// check if player hasn't entered the playroom yet (only allow VRPlayroomQuest), or has entered the playroom AND is still in there
-			if (!hasEnteredPlayroom || (hasEnteredPlayroom && isInPlayroom))
-			{
+			if (!hasEnteredPlayroom || (hasEnteredPlayroom && isInPlayroom)) {
 				if (!IsVRPlayroomQuestInStack(a_stack, a_funcCallQuery)) {
 					return false;
 				}
-				
 			}
 
-			return true;			
+			return true;
 		}
 
 		static bool IsVRPlayroomQuestInStack(RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery)
@@ -53,7 +50,7 @@ namespace VRHooks
 				RE::BSFixedString ignore1;
 				a_funcCallQuery->get()->GetFunctionCallInfo(ignore, scriptInfo, ignore1, ignore2, ignore3);
 				if (scriptInfo && scriptInfo.get() && findStringIC(scriptInfo.get()->GetName(), "vrplayroom")) {
-					return true; // function query is for VRPlayroom stuff, but a stackframe may not have been created yet, let it through
+					return true;  // function query is for VRPlayroom stuff, but a stackframe may not have been created yet, let it through
 				}
 				return false;
 			}
@@ -84,15 +81,15 @@ namespace VRHooks
 			{
 				Xbyak::Label funcLabel;
 
-				mov(rdx, rbx); // move a_stack into position, rdx will be scratched over after this call
-				mov(r8, r12); // move funcQuery into position, r8 will get scratched over as well
+				mov(rdx, rbx);  // move a_stack into position, rdx will be scratched over after this call
+				mov(r8, r12);   // move funcQuery into position, r8 will get scratched over as well
 				sub(rsp, 0x20);
-				call(ptr[rip +funcLabel]);
+				call(ptr[rip + funcLabel]);
 				add(rsp, 0x20);
 				test(al, al);  // rax will be scratched over
 				jz("StackFails");
 				L("StackPasses");
-				mov(rcx, jmpIfStackPasses); // rcx will be scratched over
+				mov(rcx, jmpIfStackPasses);  // rcx will be scratched over
 				jmp(rcx);
 				L("StackFails");
 				mov(rcx, jmpIfStackFails);
@@ -129,7 +126,7 @@ namespace VRHooks
 	{
 		static std::uint64_t thunk(std::uint64_t unk0, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3)
 		{
-			hasEnteredPlayroom = false; // reset hasEnteredPlayroom since we are returning to main menu
+			hasEnteredPlayroom = false;  // reset hasEnteredPlayroom since we are returning to main menu
 			return func(unk0, unk1, unk2, unk3);
 		}
 

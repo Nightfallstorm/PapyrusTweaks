@@ -10,17 +10,7 @@ namespace LoggerHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
-	// Putting this here avoids a compile error when used in PCH
-	template <class T>
-	static void write_thunk_call(std::uintptr_t a_src)
-	{
-		auto& trampoline = SKSE::GetTrampoline();
-		SKSE::AllocTrampoline(14);
-
-		T::func = trampoline.write_call<5>(a_src, T::thunk);
-	}
-
-	struct ValidationSignaturesHook
+	/* struct ValidationSignaturesHook
 	{
 		static std::uint64_t thunk(RE::BSScript::IFunction** a_function, RE::BSScrapArray<RE::BSScript::Variable>* a_varArray, char* a_outString, std::int32_t a_bufferSize)
 		{
@@ -118,7 +108,7 @@ namespace LoggerHooks
 			logger::info("ValidationSignaturesHook hooked at address {}", fmt::format("{:x}", target.address()));
 			logger::info("ValidationSignaturesHook at offset {}", fmt::format("{:x}", target.offset()));
 		}
-	};
+	}; */
 
 	// "Error: File \" % s \" does not exist or is not currently loaded."
 	struct GetFormFromFileHook
@@ -178,7 +168,7 @@ namespace LoggerHooks
 		static inline void Install()
 		{
 			REL::Relocation<std::uintptr_t> target{ REL_ID(52730, 00000), OFFSET_3(0x3B2, 0x0, 0x0) };  // TODO: AE and VR
-			write_thunk_call<BaseTypeMismatch>(target.address());
+			stl::write_thunk_call<BaseTypeMismatch>(target.address());
 
 			logger::info("BaseTypeMismatch hooked at address {}", fmt::format("{:x}", target.address()));
 			logger::info("BaseTypeMismatch at offset {}", fmt::format("{:x}", target.offset()));
@@ -219,7 +209,7 @@ namespace LoggerHooks
 	{
 		auto settings = Settings::GetSingleton();
 		if (settings->tweaks.improveValidateArgsErrors) {
-			ValidationSignaturesHook::Install();
+			//ValidationSignaturesHook::Install(); // TODO: Get `GetType` into CLIB-NG
 		}
 		if (settings->tweaks.disableGetFormFromFile) {
 			GetFormFromFileHook::Install();
