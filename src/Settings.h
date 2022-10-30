@@ -33,6 +33,8 @@ public:
 
 		bool speedUpGameGetPlayer{ false };
 
+		bool runScriptsOnMainThread{ false };
+
 		bool disableScriptsInPlayroom{ false };
 
 	} experimental;
