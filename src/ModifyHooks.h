@@ -56,8 +56,8 @@ namespace ModifyHooks
 			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
-			logger::info("PapyrusOpsPerFrameHook hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("PapyrusOpsPerFrameHook hooked at offset " + fmt::format("{:x}", target.offset()));
+			logger::info("PapyrusOpsPerFrameHook hooked at address {:x}",  target.address());
+			logger::info("PapyrusOpsPerFrameHook hooked at offset {:x}", target.offset());
 		}
 	};
 
@@ -85,25 +85,25 @@ namespace ModifyHooks
 
 		static inline void installModifier(int timeoutMS)
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 0), OFFSET_3(0x6E, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 54006), OFFSET_3(0x6E, 0x71, 0x6E) };
 			auto newTimeoutCheck = StackDumpTimeoutModifier(timeoutMS);
 			REL::safe_fill(target.address(), REL::NOP, 0x5);  // Fill with NOP just in case
 			REL::safe_write(target.address(), newTimeoutCheck.getCode(), newTimeoutCheck.getSize());
 
-			logger::info("StackDumpTimeoutModifier hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("StackDumpTimeoutModifier hooked at offset " + fmt::format("{:x}", target.offset()));
+			logger::info("StackDumpTimeoutModifier hooked at address {:x}", target.address());
+			logger::info("StackDumpTimeoutModifier hooked at offset {:x}", target.offset());
 		}
 
 		static inline void installDisable()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 0), OFFSET_3(0x6E, 0x0, 0x0) };  // TODO AE and VR
-			REL::safe_fill(target.address(), REL::NOP, 0x21);                                      // Disable the checks AND disable the stackdump flag
-			logger::info("StackDumpTimeoutDisable hooked at address " + fmt::format("{:x}", target.address()));
-			logger::info("StackDumpTimeoutDisable hooked at offset " + fmt::format("{:x}", target.offset()));
+			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 54006), OFFSET_3(0x6E, 0x71, 0x6E) };  // TODO AE and VR
+			REL::safe_fill(target.address(), REL::NOP, 0x21);                                            // Disable the checks AND disable the stackdump flag
+			logger::info("StackDumpTimeoutDisable hooked at address {:x}", target.address());
+			logger::info("StackDumpTimeoutDisable hooked at offset {:x}", target.offset());
 		}
 	};
 
-	struct FixToggleScriptsSaveHook
+	/*  struct FixToggleScriptsSaveHook
 	{
 		struct CallThunk : Xbyak::CodeGenerator
 		{
@@ -146,7 +146,7 @@ namespace ModifyHooks
 			logger::info("FixToggleScriptsSaveHook hooked at address {}", fmt::format("{:x}", target.address()));
 			logger::info("FixToggleScriptsSaveHook hooked at offset {}", fmt::format("{:x}", target.offset()));
 		}
-	};
+	}; */
 
 	static inline void InstallHooks()
 	{

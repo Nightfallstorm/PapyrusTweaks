@@ -16,7 +16,7 @@ namespace ExperimentalHooks
 		{
 			if (!RE::SkyrimVM::GetSingleton()->isFrozen && a_stack && a_stack->owningTasklet && a_stack->owningTasklet.get()) {
 				currentMainThreadStackRunningID = a_stack->stackID;
-				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98520, 0), REL::VariantOffset(0x0, 0x0, 0x0) };
+				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98520, 105176) };
 				void (*VMProcess)(RE::BSScript::Internal::CodeTasklet*) = reinterpret_cast<void (*)(RE::BSScript::Internal::CodeTasklet*)>(target.address());
 				VMProcess(a_stack->owningTasklet.get());
 				currentMainThreadStackRunningID = -1;
@@ -31,10 +31,10 @@ namespace ExperimentalHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98134, 105176), REL::VariantOffset(0x18E, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98134, 105176), REL::VariantOffset(0x18E, 0x18E, 0x18E) };
 			stl::write_thunk_call<RunScriptsOnMainThread>(target.address());
-			logger::info("RunScriptsOnMainThread hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("RunScriptsOnMainThread hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("RunScriptsOnMainThread hooked at address {:x}", target.address());
+			logger::info("RunScriptsOnMainThread hooked at offset {:x}", target.offset());
 		}
 	};
 
@@ -53,10 +53,10 @@ namespace ExperimentalHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98548, 0), REL::VariantOffset(0x56, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98548, 105204), REL::VariantOffset(0x56, 0x56, 0x56) };
 			stl::write_thunk_call<RunVMFunctionCallsUnsynced>(target.address());
-			logger::info("RunVMFunctionCalls hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("RunVMFunctionCalls hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("RunVMFunctionCalls hooked at address {:x}", target.address());
+			logger::info("RunVMFunctionCalls hooked at offset {:x}", target.offset());
 		}
 	};
 
@@ -78,8 +78,8 @@ namespace ExperimentalHooks
 		{
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 0), REL::VariantOffset(0x883, 0x0, 0x0) };
 			stl::write_thunk_call<ReturnVMFunctionCallsUnsynced>(target.address());
-			logger::info("ReturnVMFunctionCalls hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("ReturnVMFunctionCalls hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("ReturnVMFunctionCalls hooked at address {:x}", target.address());
+			logger::info("ReturnVMFunctionCalls hooked at offset {:x}", target.offset());
 		}
 	};
 

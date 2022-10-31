@@ -120,8 +120,8 @@ namespace LoggerHooks
 			REL::safe_fill(target.address(), REL::NOP, 0x5);                                            // Remove the call to setup the log
 			REL::Relocation<std::uintptr_t> target2{ REL_ID(54832, 00000), OFFSET_3(0x97, 0x0, 0x0) };  // TODO: AE and VR
 			REL::safe_fill(target2.address(), REL::NOP, 0x4);                                           // Remove the call to log the GetFormFromFile error
-			logger::info("GetFormFromFileHook hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("GetFormFromFileHook at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("GetFormFromFileHook hooked at address {:x}", target.address());
+			logger::info("GetFormFromFileHook at offset {:x}", target.offset());
 		}
 	};
 
@@ -170,8 +170,8 @@ namespace LoggerHooks
 			REL::Relocation<std::uintptr_t> target{ REL_ID(52730, 00000), OFFSET_3(0x3B2, 0x0, 0x0) };  // TODO: AE and VR
 			stl::write_thunk_call<BaseTypeMismatch>(target.address());
 
-			logger::info("BaseTypeMismatch hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("BaseTypeMismatch at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("BaseTypeMismatch hooked at address {:x}", target.address());
+			logger::info("BaseTypeMismatch at offset {:x}", target.offset());
 		}
 	};
 
@@ -184,8 +184,8 @@ namespace LoggerHooks
 			REL::Relocation<std::uintptr_t> target{ REL_ID(52767, 00000), OFFSET_3(0x6FC, 0x0, 0x0) };  // TODO: AE and VR
 			REL::safe_fill(target.address(), REL::NOP, 0x3);                                            // erase the call to log the warning
 
-			logger::info("NoPropertyOnScript installed at address {}", fmt::format("{:x}", target.address()));
-			logger::info("NoPropertyOnScript installed at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("NoPropertyOnScript installed at address {:x}", target.address());
+			logger::info("NoPropertyOnScript installed at offset {:x}", target.offset());
 		}
 	};
 
@@ -200,8 +200,8 @@ namespace LoggerHooks
 			REL::safe_fill(target.address(), REL::NOP, 0x9);
 			REL::safe_write(target.address(), newJump, 0x5);
 
-			logger::info("DisableMissingScriptError installed at address {}", fmt::format("{:x}", target.address()));
-			logger::info("DisableMissingScriptError installed at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("DisableMissingScriptError installed at address {:x}", target.address());
+			logger::info("DisableMissingScriptError installed at offset {:x}", target.offset());
 		}
 	};
 
