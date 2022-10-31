@@ -15,6 +15,9 @@ void Settings::Load()
 
 	ini.LoadFile(path);
 
+	//FIXES
+	tweaks.Load(ini);
+
 	//TWEAKS
 	tweaks.Load(ini);
 
@@ -22,6 +25,13 @@ void Settings::Load()
 	experimental.Load(ini);
 
 	ini.SaveFile(path);
+}
+
+void Settings::Fixes::Load(CSimpleIniA& a_ini)
+{
+	const char* section = "Tweaks";
+
+	detail::get_value(a_ini, fixToggleScriptSave, section, "bFixToggleScriptSave", ";Fixes a bug where saving a game will always unfreeze scripts regardless of the frozen status.\nThis is mainly intended to fix \"ToggleScript\" console command not keeping scripts frozen on save");
 }
 
 void Settings::Tweaks::Load(CSimpleIniA& a_ini)

@@ -156,9 +156,57 @@ namespace ModifyHooks
 		}
 	};
 
+	struct FixToggleScriptsSaveHook
+	{
+		struct CallThunk : Xbyak::CodeGenerator
+		{
+			CallThunk(std::uintptr_t func)
+			{
+				Xbyak::Label funcLabel;
+
+				sub(rsp, 0x20);
+				call(ptr[rip + funcLabel]);
+				add(rsp, 0x20);
+				ret();
+				L(funcLabel);
+				dq(func);
+			}
+		};
+		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
+		{
+			if (RE::Script::GetProcessScripts()) { // Only unfreeze script processing if script processing is enabled
+				a_this->frozenLock.Lock();
+				a_this->isFrozen = a_frozen;
+				a_this->frozenLock.Unlock();
+			}
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 0), OFFSET_3(0x46, 0x0, 0x0) };
+
+			auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
+			auto& trampoline = SKSE::GetTrampoline();
+			SKSE::AllocTrampoline(callThunk.getSize());
+			auto result = trampoline.allocate(callThunk);
+			auto& trampoline2 = SKSE::GetTrampoline();
+			SKSE::AllocTrampoline(14);
+			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+
+			logger::info("FixToggleScriptsSaveHook hooked at address {}", fmt::format("{:x}", target.address()));
+			logger::info("FixToggleScriptsSaveHook hooked at offset {}", fmt::format("{:x}", target.offset()));
+		}
+	};
+
 	static inline void InstallHooks()
 	{
 		StackDumpTimeoutHook::Install();
 		PapyrusOpsPerFrameHook::Install();
+		if (Settings::GetSingleton()->fixes.fixToggleScriptSave) {
+			FixToggleScriptsSaveHook::Install();
+		}
 	}
 }

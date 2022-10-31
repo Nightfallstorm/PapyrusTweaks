@@ -7,6 +7,13 @@ public:
 
 	void Load();
 
+	struct Fixes
+	{
+		void Load(CSimpleIniA& a_ini);
+
+		bool fixToggleScriptSave{ true };
+	} fixes;
+
 	struct Tweaks
 	{
 		void Load(CSimpleIniA& a_ini);
