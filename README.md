@@ -1,6 +1,6 @@
 # PapyrusTweaks
 
-TBD
+Collection of tweaks and fixes for Skyrim's Papyrus engine.
 
 ## Requirements
 * [CMake](https://cmake.org/)
@@ -24,9 +24,9 @@ TBD
 
 ## Building
 ```
-git clone https://github.com/Nightfallstorm/ScriptOverheadStatus.git
-cd ScriptOverheadStatus
-cmake --preset ScriptOverheadStatus
+git clone https://github.com/Nightfallstorm/PapyrusTweaks.git
+cd PapyrusTweaks
+cmake --preset PapyrusTweaks
 cmake --build build --config Release
 ```
 
