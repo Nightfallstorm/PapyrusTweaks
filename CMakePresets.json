@@ -43,24 +43,8 @@
       "name": "windows"
     },
     {
-      "binaryDir": "${sourceDir}/buildae",
       "cacheVariables": {
-        "BUILD_SKYRIMAE": true
-      },
-      "hidden": true,
-      "name": "ae"
-    },
-    {
-      "binaryDir": "${sourceDir}/buildvr",
-      "cacheVariables": {
-        "BUILD_SKYRIMVR": true
-      },
-      "hidden": true,
-      "name": "vr"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 /external:W0"
+        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 $penv{CXXFLAGS}"
       },
       "generator": "Visual Studio 17 2022",
       "inherits": [
@@ -68,35 +52,7 @@
         "vcpkg",
         "windows"
       ],
-      "name": "vs2022-windows-vcpkg-se",
-      "toolset": "v143"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 /external:W0"
-      },
-      "generator": "Visual Studio 17 2022",
-      "inherits": [
-        "vr",
-        "cmake-dev",
-        "vcpkg",
-        "windows"
-      ],
-      "name": "vs2022-windows-vcpkg-vr",
-      "toolset": "v143"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 /external:W0"
-      },
-      "generator": "Visual Studio 17 2022",
-      "inherits": [
-        "ae",
-        "cmake-dev",
-        "vcpkg",
-        "windows"
-      ],
-      "name": "vs2022-windows-vcpkg-ae",
+      "name": "scriptoverheadstatus",
       "toolset": "v143"
     }
   ],
