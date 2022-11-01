@@ -8,7 +8,6 @@
 namespace LoggerHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
-	using StackID = RE::VMStackID;
 
 	/* struct ValidationSignaturesHook
 	{
@@ -102,7 +101,7 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(98130, 00000), OFFSET_3(0x63D, 0x0, 0x0) };  // TODO: AE and VR
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 00000), OFFSET_3(0x63D, 0x0, 0x0) };  // TODO: AE and VR
 			write_thunk_call<ValidationSignaturesHook>(target.address());
 
 			logger::info("ValidationSignaturesHook hooked at address {}", fmt::format("{:x}", target.address()));
@@ -116,10 +115,10 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(54832, 00000), OFFSET_3(0x7E, 0x0, 0x0) };   // TODO: AE and VR
-			REL::safe_fill(target.address(), REL::NOP, 0x5);                                            // Remove the call to setup the log
-			REL::Relocation<std::uintptr_t> target2{ REL_ID(54832, 00000), OFFSET_3(0x97, 0x0, 0x0) };  // TODO: AE and VR
-			REL::safe_fill(target2.address(), REL::NOP, 0x4);                                           // Remove the call to log the GetFormFromFile error
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(54832, 55465), REL::VariantOffset(0x7E, 0x7E, 0x81) };
+			REL::safe_fill(target.address(), REL::NOP, 0x5);  // Remove the call to setup the log
+			REL::Relocation<std::uintptr_t> target2{ RELOCATION_ID(54832, 55465), REL::VariantOffset(0x97, 0x97, 0x9A) };
+			REL::safe_fill(target2.address(), REL::NOP, 0x4);  // Remove the call to log the GetFormFromFile error
 			logger::info("GetFormFromFileHook hooked at address {:x}", target.address());
 			logger::info("GetFormFromFileHook at offset {:x}", target.offset());
 		}
@@ -128,14 +127,13 @@ namespace LoggerHooks
 	// "Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match"
 	struct BaseTypeMismatch
 	{
-		static inline auto newErrorMessage = "Script %s cannot be binded to %s because their base types do not match";
 		// Improve BaseTypeMismatch to distinguish when script not loaded vs script type incorrect
 		static bool thunk(const char* a_buffer, const std::size_t bufferCount, const char* a_format, const char* a_scriptName, const char* a_objectName)
 		{
 			if (a_scriptName == nullptr || a_objectName == nullptr || a_format == nullptr || a_buffer == nullptr) {
 				return func(a_buffer, bufferCount, a_format, a_scriptName, a_objectName);
 			}
-			auto VM = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+			auto VM = VM::GetSingleton();
 
 			if (VM->TypeIsValid(a_scriptName)) {
 				RE::BSTSmartPointer<RE::BSScript::ObjectTypeInfo> info;
@@ -156,9 +154,7 @@ namespace LoggerHooks
 			while ((scriptInfo = scriptInfo->GetParent()) != nullptr) {
 				newScriptName = newScriptName + scriptInfo->name.c_str() + "->";
 			};
-			logger::info("{}", newScriptName);
 			std::string result = newScriptName.substr(0, newScriptName.size() - 2) + ")";
-			logger::info("{}", result);
 			return result;
 		}
 
@@ -167,7 +163,7 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(52730, 00000), OFFSET_3(0x3B2, 0x0, 0x0) };  // TODO: AE and VR
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(52730, 53574), REL::VariantOffset(0x3B2, 0x52C, 0x3B2) };
 			stl::write_thunk_call<BaseTypeMismatch>(target.address());
 
 			logger::info("BaseTypeMismatch hooked at address {:x}", target.address());
@@ -181,8 +177,8 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(52767, 00000), OFFSET_3(0x6FC, 0x0, 0x0) };  // TODO: AE and VR
-			REL::safe_fill(target.address(), REL::NOP, 0x3);                                            // erase the call to log the warning
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(52767, 53611), REL::VariantOffset(0x6FC, 0x6CB, 0x6FC) };
+			REL::safe_fill(target.address(), REL::NOP, 0x3);  // erase the call to log the warning
 
 			logger::info("NoPropertyOnScript installed at address {:x}", target.address());
 			logger::info("NoPropertyOnScript installed at offset {:x}", target.offset());
@@ -195,10 +191,16 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(97831, 00000), OFFSET_3(0xC4, 0x0, 0x0) };  // TODO: AE and VR
-			std::byte newJump[] = { (std::byte)0xe9, (std::byte)0xbc, (std::byte)0x00, (std::byte)0x00, (std::byte)0x00 };
-			REL::safe_fill(target.address(), REL::NOP, 0x9);
-			REL::safe_write(target.address(), newJump, 0x5);
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(97831, 104575), REL::VariantOffset(0xC4, 0x123, 0xC4) };
+			if (REL::Module::IsAE()) {
+				std::byte newJump[] = { (std::byte)0xe9, (std::byte)0x8F, (std::byte)0xFF, (std::byte)0xFF, (std::byte)0xFF };
+				REL::safe_fill(target.address(), REL::NOP, 0x5);
+				REL::safe_write(target.address(), newJump, 0x5);
+			} else {
+				std::byte newJump[] = { (std::byte)0xe9, (std::byte)0xbc, (std::byte)0x00, (std::byte)0x00, (std::byte)0x00 };
+				REL::safe_fill(target.address(), REL::NOP, 0x9);
+				REL::safe_write(target.address(), newJump, 0x5);
+			}
 
 			logger::info("DisableMissingScriptError installed at address {:x}", target.address());
 			logger::info("DisableMissingScriptError installed at offset {:x}", target.offset());

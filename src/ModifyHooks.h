@@ -1,10 +1,7 @@
 #pragma once
 #include "Settings.h"
 #include <xbyak/xbyak.h>
-/* TODO:
-* 1. Throw stack overflows to prevent a script from causing FPS drops when 1000+ calls deep in a stack - Done!
-* 2. Increase Stack Dump timeout threshold (maybe increase stackcount threshold too?)
-*/
+
 namespace ModifyHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
@@ -85,7 +82,7 @@ namespace ModifyHooks
 
 		static inline void installModifier(int timeoutMS)
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 54006), OFFSET_3(0x6E, 0x71, 0x6E) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 54006), REL::VariantOffset(0x6E, 0x71, 0x6E) };
 			auto newTimeoutCheck = StackDumpTimeoutModifier(timeoutMS);
 			REL::safe_fill(target.address(), REL::NOP, 0x5);  // Fill with NOP just in case
 			REL::safe_write(target.address(), newTimeoutCheck.getCode(), newTimeoutCheck.getSize());
@@ -96,7 +93,7 @@ namespace ModifyHooks
 
 		static inline void installDisable()
 		{
-			REL::Relocation<std::uintptr_t> target{ REL_ID(53195, 54006), OFFSET_3(0x6E, 0x71, 0x6E) };  // TODO AE and VR
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 54006), REL::VariantOffset(0x6E, 0x71, 0x6E) };
 			REL::safe_fill(target.address(), REL::NOP, 0x21);                                            // Disable the checks AND disable the stackdump flag
 			logger::info("StackDumpTimeoutDisable hooked at address {:x}", target.address());
 			logger::info("StackDumpTimeoutDisable hooked at offset {:x}", target.offset());
@@ -133,7 +130,7 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 0), OFFSET_3(0x46, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 54016), OFFSET_3(0x46, 0x46, 0x41) };
 
 			auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
 			auto& trampoline = SKSE::GetTrampoline();
@@ -154,6 +151,7 @@ namespace ModifyHooks
 		PapyrusOpsPerFrameHook::Install();
 		if (Settings::GetSingleton()->fixes.fixToggleScriptSave) {
 			//FixToggleScriptsSaveHook::Install(); TODO: Enable on CLIB-NG
+			// ALSO TODO: Fix For stack dumps as well
 		}
 	}
 }

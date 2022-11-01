@@ -7,6 +7,7 @@ namespace ExperimentalHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
+	static bool appliedLoadHooks = false;
 	static StackID currentMainThreadStackRunningID = -1;
 	// Let each stack being processed from function messages run on main thread once. Additional hooks are provided to let all non-latent function calls
 	// call immediately and return immediately since we can guarantee thread safety for those calls
@@ -31,7 +32,7 @@ namespace ExperimentalHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98134, 105176), REL::VariantOffset(0x18E, 0x18E, 0x18E) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98134, 104857), REL::VariantOffset(0x18E, 0x18E, 0x18E) };
 			stl::write_thunk_call<RunScriptsOnMainThread>(target.address());
 			logger::info("RunScriptsOnMainThread hooked at address {:x}", target.address());
 			logger::info("RunScriptsOnMainThread hooked at offset {:x}", target.offset());
@@ -76,7 +77,7 @@ namespace ExperimentalHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 0), REL::VariantOffset(0x883, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x883, 0x898, 0x883) };
 			stl::write_thunk_call<ReturnVMFunctionCallsUnsynced>(target.address());
 			logger::info("ReturnVMFunctionCalls hooked at address {:x}", target.address());
 			logger::info("ReturnVMFunctionCalls hooked at offset {:x}", target.offset());
@@ -86,15 +87,26 @@ namespace ExperimentalHooks
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
-		if (settings->experimental.speedUpGameGetPlayer) {
-			VM::GetSingleton()->SetCallableFromTasklets("Game", "GetPlayer", true);
-			logger::info("Applied Game.GetPlayer speed up");
-		}
 
 		if (settings->experimental.runScriptsOnMainThread) {
 			RunScriptsOnMainThread::Install();
 			RunVMFunctionCallsUnsynced::Install();
 			ReturnVMFunctionCallsUnsynced::Install();
 		}
+	}
+
+	static inline void installAfterLoadHooks() {
+		if (appliedLoadHooks) {
+			return;
+		}
+		
+		if (RE::SkyrimVM::GetSingleton() && VM::GetSingleton()) {
+			if (Settings::GetSingleton()->experimental.speedUpGameGetPlayer) {
+				appliedLoadHooks = true;
+				VM::GetSingleton()->SetCallableFromTasklets("Game", "GetPlayer", true);
+				logger::info("Applied Game.GetPlayer speed up");
+			}			
+		}
+		
 	}
 }
