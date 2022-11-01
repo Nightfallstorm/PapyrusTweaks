@@ -117,8 +117,8 @@ namespace VRHooks
 			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
-			logger::info("VRPlayroomScriptDisable hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("VRPlayroomScriptDisable hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("VRPlayroomScriptDisable hooked at address {:x}", target.address());
+			logger::info("VRPlayroomScriptDisable hooked at offset {:x}", target.offset());
 		}
 	};
 
@@ -140,8 +140,8 @@ namespace VRHooks
 
 			stl::write_thunk_call<ReturnToMainMenuHook>(target.address());
 
-			logger::info("VRPlayroomScriptDisableMainMenuCallback hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("VRPlayroomScriptDisableMainMenuCallback hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("VRPlayroomScriptDisableMainMenuCallback hooked at address {:x}", target.address());
+			logger::info("VRPlayroomScriptDisableMainMenuCallback hooked at offset {:X}", target.offset());
 		}
 	};
 

@@ -1,8 +1,8 @@
-#include "ModifyHooks.h"
-#include "LoggerHooks.h"
 #include "ExperimentalHooks.h"
-#include "VRHooks.h"
+#include "LoggerHooks.h"
+#include "ModifyHooks.h"
 #include "Settings.h"
+#include "VRHooks.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {

@@ -53,7 +53,7 @@ namespace ModifyHooks
 			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
-			logger::info("PapyrusOpsPerFrameHook hooked at address {:x}",  target.address());
+			logger::info("PapyrusOpsPerFrameHook hooked at address {:x}", target.address());
 			logger::info("PapyrusOpsPerFrameHook hooked at offset {:x}", target.offset());
 		}
 	};
@@ -94,7 +94,7 @@ namespace ModifyHooks
 		static inline void installDisable()
 		{
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 54006), REL::VariantOffset(0x6E, 0x71, 0x6E) };
-			REL::safe_fill(target.address(), REL::NOP, 0x21);                                            // Disable the checks AND disable the stackdump flag
+			REL::safe_fill(target.address(), REL::NOP, 0x21);  // Disable the checks AND disable the stackdump flag
 			logger::info("StackDumpTimeoutDisable hooked at address {:x}", target.address());
 			logger::info("StackDumpTimeoutDisable hooked at offset {:x}", target.offset());
 		}

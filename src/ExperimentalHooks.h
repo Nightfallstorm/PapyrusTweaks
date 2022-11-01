@@ -95,18 +95,18 @@ namespace ExperimentalHooks
 		}
 	}
 
-	static inline void installAfterLoadHooks() {
+	static inline void installAfterLoadHooks()
+	{
 		if (appliedLoadHooks) {
 			return;
 		}
-		
+
 		if (RE::SkyrimVM::GetSingleton() && VM::GetSingleton()) {
 			if (Settings::GetSingleton()->experimental.speedUpGameGetPlayer) {
 				appliedLoadHooks = true;
 				VM::GetSingleton()->SetCallableFromTasklets("Game", "GetPlayer", true);
 				logger::info("Applied Game.GetPlayer speed up");
-			}			
+			}
 		}
-		
 	}
 }
