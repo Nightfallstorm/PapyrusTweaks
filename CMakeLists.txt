@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 set(NAME "PapyrusTweaks")
 set(VERSION 0.1.0)
+set(AE_VERSION 1)
+set(VR_VERSION 1)
+
+# ---- Options ----
+
+option(COPY_BUILD "Copy the build output to the Skyrim directory." FALSE)
+option(BUILD_SKYRIMVR "Build for Skyrim VR" OFF)
+option(BUILD_SKYRIMAE "Build for Skyrim AE" OFF)
 
 # ---- Cache build vars ----
 
@@ -10,15 +18,47 @@ macro(set_from_environment VARIABLE)
 	endif ()
 endmacro()
 
-set_from_environment(VCPKG_ROOT)
-set(CommonLibName "CommonLibSSE")
-set_from_environment(Skyrim64Path)
-set(SkyrimPath ${Skyrim64Path})
-set(SkyrimVersion "Skyrim SSE")
+macro(find_commonlib_path)
+	if (CommonLibName AND NOT ${CommonLibName} STREQUAL "")
+		# Check extern
+		find_path(CommonLibPath
+		include/REL/Relocation.h
+		PATHS external/${CommonLibName}
+			extern/${CommonLibName})
+		if (${CommonLibPath} STREQUAL "CommonLibPath-NOTFOUND")
+			#Check path
+			set_from_environment(${CommonLibName}Path)
+			set(CommonLibPath ${${CommonLibName}Path})
+		endif()
+	endif()
+endmacro()
 
+set_from_environment(VCPKG_ROOT)
+if(BUILD_SKYRIMAE)
+	add_compile_definitions(SKYRIM_AE)
+	set(CommonLibName "CommonLibSSE")
+	set_from_environment(SkyrimAEPath)
+	set(SkyrimPath ${SkyrimAEPath})
+	set(SkyrimVersion "Skyrim AE")
+	set(VERSION ${VERSION}.${AE_VERSION})
+elseif(BUILD_SKYRIMVR)
+	add_compile_definitions(SKYRIMVR)
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	set(CommonLibName "CommonLibVR")
+	set_from_environment(SkyrimVRPath)
+	set(SkyrimPath ${SkyrimVRPath})
+	set(SkyrimVersion "Skyrim VR")
+	set(VERSION ${VERSION}.${VR_VERSION})
+else()
+	set(CommonLibName "CommonLibSSE")
+	set_from_environment(Skyrim64Path)
+	set(SkyrimPath ${Skyrim64Path})
+	set(SkyrimVersion "Skyrim SSE")
+endif()
+find_commonlib_path()
 message(
 	STATUS
-	"Building ${NAME} ${VERSION}."
+	"Building ${NAME} ${VERSION} for ${SkyrimVersion} at ${SkyrimPath} with ${CommonLibName} at ${CommonLibPath}."
 )
 
 if (DEFINED VCPKG_ROOT)
@@ -68,6 +108,12 @@ add_compile_definitions(
 	SKSE_SUPPORT_XBYAK
 )
 
+if (BUILD_SKYRIMAE)
+	add_compile_definitions(
+		SKYRIM_SUPPORT_AE
+	)
+endif()
+
 if (MSVC)
 	if (NOT ${CMAKE_GENERATOR} STREQUAL "Ninja")
 		add_compile_options(
@@ -84,7 +130,14 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STR
 
 # ---- Dependencies ----
 
-find_package(CommonLibSSE CONFIG REQUIRED)
+if (DEFINED CommonLibPath AND NOT ${CommonLibPath} STREQUAL "" AND IS_DIRECTORY ${CommonLibPath})
+	add_subdirectory(${CommonLibPath} ${CommonLibName})
+else ()
+	message(
+		FATAL_ERROR
+		"Variable ${CommonLibName}Path is not set."
+	)
+endif()
 
 find_package(robin_hood CONFIG REQUIRED)
 find_path(SIMPLEINI_INCLUDE_DIRS "ConvertUTF.c")
@@ -203,4 +256,22 @@ if (MSVC)
 	# fix a warning with /Ob2 being overridden with /Ob3
 	string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 
+endif ()
+
+# ---- Post build ----
+
+if (COPY_BUILD)
+	if (DEFINED SkyrimPath)
+		add_custom_command(
+			TARGET ${PROJECT_NAME}
+			POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${SkyrimPath}/Data/SKSE/Plugins/
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${SkyrimPath}/Data/SKSE/Plugins/
+		)
+	else ()
+		message(
+			WARNING
+			"Variable ${SkyrimPath} is not defined. Skipping post-build copy command."
+		)
+	endif ()
 endif ()
