@@ -9,7 +9,7 @@ namespace LoggerHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
 
-	/* struct ValidationSignaturesHook
+	struct ValidationSignaturesHook
 	{
 		static std::uint64_t thunk(RE::BSScript::IFunction** a_function, RE::BSScrapArray<RE::BSScript::Variable>* a_varArray, char* a_outString, std::int32_t a_bufferSize)
 		{
@@ -101,13 +101,13 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), OFFSET_3(0x63D, 0x650, 0x63D) };  // TODO: confirm AE and VR
-			write_thunk_call<ValidationSignaturesHook>(target.address());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x63D, 0x650, 0x63D) };  // TODO: confirm AE and VR
+			stl::write_thunk_call<ValidationSignaturesHook>(target.address());
 
 			logger::info("ValidationSignaturesHook hooked at address {}", fmt::format("{:x}", target.address()));
 			logger::info("ValidationSignaturesHook at offset {}", fmt::format("{:x}", target.offset()));
 		}
-	}; */
+	};
 
 	// "Error: File \" % s \" does not exist or is not currently loaded."
 	struct GetFormFromFileHook
@@ -211,7 +211,7 @@ namespace LoggerHooks
 	{
 		auto settings = Settings::GetSingleton();
 		if (settings->tweaks.improveValidateArgsErrors) {
-			//ValidationSignaturesHook::Install(); // TODO: Get `GetType` into CLIB-NG
+			ValidationSignaturesHook::Install();
 		}
 		if (settings->tweaks.disableGetFormFromFile) {
 			GetFormFromFileHook::Install();

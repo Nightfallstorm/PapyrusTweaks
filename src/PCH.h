@@ -64,7 +64,7 @@ namespace REL
 	class tempModule
 	{
 	public:
-#ifdef SKYRIM_VR
+#ifdef SKYRIMVR
 		static bool IsVR(){ return true; }
 		static bool IsAE() { return false; }
 		static bool IsSE() { return false; }
