@@ -5,4 +5,5 @@ set(headers ${headers}
 	src/ExperimentalHooks.h
 	src/VRHooks.h
 	src/Settings.h
+	src/Util.h
 )

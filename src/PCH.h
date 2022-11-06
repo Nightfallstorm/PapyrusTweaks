@@ -10,9 +10,10 @@
 #include <robin_hood.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <xbyak/xbyak.h>
+#include "Util.h"
 
 namespace logger = SKSE::log;
-namespace string = SKSE::stl::string;
+namespace string = Util::stl::string;
 
 using namespace std::literals;
 
@@ -65,15 +66,15 @@ namespace REL
 	{
 	public:
 #ifdef SKYRIMVR
-		static bool IsVR(){ return true; }
+		static bool IsVR() { return true; }
 		static bool IsAE() { return false; }
 		static bool IsSE() { return false; }
 #elif SKYRIM_AE
-		static bool IsVR(){ return false; }
+		static bool IsVR() { return false; }
 		static bool IsAE() { return true; }
 		static bool IsSE() { return false; }
 #else
-		static bool IsVR(){ return false; }
+		static bool IsVR() { return false; }
 		static bool IsAE() { return false; }
 		static bool IsSE() { return true; }
 #endif
