@@ -82,7 +82,7 @@ namespace REL
 
 	static int VariantOffset(int SE, int AE, int VR)
 	{
-#ifdef SKYRIM_VR
+#ifdef SKYRIMVR
 		return VR;
 
 #elif SKYRIM_AE

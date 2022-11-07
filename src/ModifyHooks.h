@@ -134,15 +134,20 @@ namespace ModifyHooks
 		static inline void Install()
 		{
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 54016), REL::VariantOffset(0x46, 0x46, 0x41) };
-			// Save code uses jmp over call, and expects `SkyrimVM->SetFrozen()` to return from the save function
-			// so we can't use a regular thunk call
-			auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
-			auto& trampoline = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(callThunk.getSize());
-			auto result = trampoline.allocate(callThunk);
-			auto& trampoline2 = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(14);
-			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+
+			if (REL::Module::IsVR()) {
+				stl::write_thunk_call<FixToggleScriptsSaveHook>(target.address());
+			} else {
+				// Save code uses jmp over call, and expects `SkyrimVM->SetFrozen()` to return from the save function
+				// so we can't use a regular thunk call
+				auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
+				auto& trampoline = SKSE::GetTrampoline();
+				SKSE::AllocTrampoline(callThunk.getSize());
+				auto result = trampoline.allocate(callThunk);
+				auto& trampoline2 = SKSE::GetTrampoline();
+				SKSE::AllocTrampoline(14);
+				trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+			}
 
 			logger::info("FixToggleScriptsSaveHook for saves hooked at address {:x}", target.address());
 			logger::info("FixToggleScriptsSaveHook hooked at offset {:x}", target.offset());
