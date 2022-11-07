@@ -10,9 +10,10 @@
 #include <robin_hood.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <xbyak/xbyak.h>
+#include "Util.h"
 
 namespace logger = SKSE::log;
-namespace string = SKSE::stl::string;
+namespace string = Util::stl::string;
 
 using namespace std::literals;
 

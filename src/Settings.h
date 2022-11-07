@@ -12,6 +12,7 @@ public:
 		void Load(CSimpleIniA& a_ini);
 
 		bool fixToggleScriptSave{ true };
+		bool fixScriptPageAllocation{ true };
 	} fixes;
 
 	struct Tweaks

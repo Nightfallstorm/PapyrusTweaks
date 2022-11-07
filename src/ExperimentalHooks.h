@@ -102,8 +102,8 @@ namespace ExperimentalHooks
 		}
 
 		if (RE::SkyrimVM::GetSingleton() && VM::GetSingleton()) {
+			appliedLoadHooks = true;
 			if (Settings::GetSingleton()->experimental.speedUpGameGetPlayer) {
-				appliedLoadHooks = true;
 				VM::GetSingleton()->SetCallableFromTasklets("Game", "GetPlayer", true);
 				logger::info("Applied Game.GetPlayer speed up");
 			}

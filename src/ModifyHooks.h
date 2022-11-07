@@ -73,7 +73,9 @@ namespace ModifyHooks
 		static inline void Install()
 		{
 			auto stackDumpTimeoutMS = Settings::GetSingleton()->tweaks.stackDumpTimeoutThreshold;
-			if (stackDumpTimeoutMS == 0) {
+			if (stackDumpTimeoutMS < 0) {
+				return;
+			} else if (stackDumpTimeoutMS == 0) {
 				installDisable();
 			} else {
 				installModifier(stackDumpTimeoutMS);
@@ -84,6 +86,7 @@ namespace ModifyHooks
 		{
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 54006), REL::VariantOffset(0x6E, 0x71, 0x6E) };
 			auto newTimeoutCheck = StackDumpTimeoutModifier(timeoutMS);
+			assert(newTimeoutCheck.getSize() <= 0x5);
 			REL::safe_fill(target.address(), REL::NOP, 0x5);  // Fill with NOP just in case
 			REL::safe_write(target.address(), newTimeoutCheck.getCode(), newTimeoutCheck.getSize());
 
@@ -100,7 +103,7 @@ namespace ModifyHooks
 		}
 	};
 
-	/*  struct FixToggleScriptsSaveHook
+	struct FixToggleScriptsSaveHook
 	{
 		struct CallThunk : Xbyak::CodeGenerator
 		{
@@ -118,7 +121,7 @@ namespace ModifyHooks
 		};
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
 		{
-			if (RE::Script::GetProcessScripts()) { // Only unfreeze script processing if script processing is enabled
+			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
 				a_this->frozenLock.Lock();
 				a_this->isFrozen = a_frozen;
 				a_this->frozenLock.Unlock();
@@ -130,28 +133,97 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 54016), OFFSET_3(0x46, 0x46, 0x41) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53205, 54016), REL::VariantOffset(0x46, 0x46, 0x41) };
 
-			auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
-			auto& trampoline = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(callThunk.getSize());
-			auto result = trampoline.allocate(callThunk);
-			auto& trampoline2 = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(14);
-			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+			if (REL::Module::IsVR()) {
+				stl::write_thunk_call<FixToggleScriptsSaveHook>(target.address());
+			} else {
+				// Save code uses jmp over call, and expects `SkyrimVM->SetFrozen()` to return from the save function
+				// so we can't use a regular thunk call
+				auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
+				auto& trampoline = SKSE::GetTrampoline();
+				SKSE::AllocTrampoline(callThunk.getSize());
+				auto result = trampoline.allocate(callThunk);
+				auto& trampoline2 = SKSE::GetTrampoline();
+				SKSE::AllocTrampoline(14);
+				trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+			}
 
-			logger::info("FixToggleScriptsSaveHook hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("FixToggleScriptsSaveHook hooked at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("FixToggleScriptsSaveHook for saves hooked at address {:x}", target.address());
+			logger::info("FixToggleScriptsSaveHook hooked at offset {:x}", target.offset());
 		}
-	}; */
+	};
+
+	struct FixToggleScriptsDumpHook
+	{
+		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
+		{
+			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
+				a_this->frozenLock.Lock();
+				a_this->isFrozen = a_frozen;
+				a_this->frozenLock.Unlock();
+			}
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53209, 54020), REL::VariantOffset(0xCC, 0xCC, 0xCC) };
+			stl::write_thunk_call<FixToggleScriptsDumpHook>(target.address());
+
+			logger::info("FixToggleScriptsSaveHook for stack dumps hooked at address {:x}", target.address());
+			logger::info("FixToggleScriptsSaveHook hooked at offset {:x}", target.offset());
+		}
+	};
+
+	struct FixScriptPageAllocation
+	{
+		// BSScript::SimpleAllocMemoryPagePolicy::GetLargestAvailablePage
+		static RE::BSScript::IMemoryPagePolicy::AllocationStatus thunk(RE::BSScript::SimpleAllocMemoryPagePolicy* self, RE::BSTAutoPointer<RE::BSScript::MemoryPage>& a_newPage)
+		{
+			self->dataLock.Lock();
+			int availablePageSize = self->maxAllocatedMemory - self->currentMemorySize;
+			int currentMemorySizeTemp = self->currentMemorySize;
+			if (availablePageSize < 0) {
+				// set equal so the original function will return kOutOfMemory instead of unintentionally allocating a page
+				self->currentMemorySize = self->maxAllocatedMemory;
+			}
+			RE::BSScript::IMemoryPagePolicy::AllocationStatus result = func(self, a_newPage);
+			if (availablePageSize < 0) {
+				// set back to original size
+				self->currentMemorySize = currentMemorySizeTemp;
+			}
+			self->dataLock.Unlock();
+			return result;
+		}
+
+		static inline std::uint32_t idx = 3;
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			stl::write_vfunc<RE::BSScript::SimpleAllocMemoryPagePolicy, FixScriptPageAllocation>();
+
+			logger::info("FixScriptPageAllocation set!");
+		}
+	};
 
 	static inline void InstallHooks()
 	{
-		StackDumpTimeoutHook::Install();
-		PapyrusOpsPerFrameHook::Install();
-		if (Settings::GetSingleton()->fixes.fixToggleScriptSave) {
-			//FixToggleScriptsSaveHook::Install(); TODO: Enable on CLIB-NG
-			// ALSO TODO: Fix For stack dumps as well
+		auto settings = Settings::GetSingleton();
+		if (settings->tweaks.maxOpsPerFrame > 0) {
+			PapyrusOpsPerFrameHook::Install();
+		}
+		if (settings->fixes.fixToggleScriptSave) {
+			FixToggleScriptsSaveHook::Install();
+			FixToggleScriptsDumpHook::Install();
+		}
+		if (settings->fixes.fixScriptPageAllocation) {
+			FixScriptPageAllocation::Install();
 		}
 	}
 }
