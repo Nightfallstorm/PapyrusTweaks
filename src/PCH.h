@@ -57,42 +57,6 @@ namespace stl
 	}
 }
 
-namespace REL
-{
-
-	#define Module tempModule
-
-	class tempModule
-	{
-	public:
-#ifdef SKYRIMVR
-		static bool IsVR() { return true; }
-		static bool IsAE() { return false; }
-		static bool IsSE() { return false; }
-#elif SKYRIM_AE
-		static bool IsVR() { return false; }
-		static bool IsAE() { return true; }
-		static bool IsSE() { return false; }
-#else
-		static bool IsVR() { return false; }
-		static bool IsAE() { return false; }
-		static bool IsSE() { return true; }
-#endif
-	};
-
-	static int VariantOffset(int SE, int AE, int VR)
-	{
-#ifdef SKYRIMVR
-		return VR;
-
-#elif SKYRIM_AE
-		return AE;
-#else
-		return SE;
-#endif
-	}
-}
-
 #define DLLEXPORT __declspec(dllexport)
 
 #include "Version.h"

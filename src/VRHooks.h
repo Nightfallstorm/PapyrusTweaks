@@ -103,9 +103,9 @@ namespace VRHooks
 		static inline void Install()
 		{
 			assert(REL::Module::IsVR());
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 0x0), 0x1A5 };
-			REL::Relocation<std::uintptr_t> stackPasses{ RELOCATION_ID(98130, 0x0), 0x252 };
-			REL::Relocation<std::uintptr_t> stackFails{ RELOCATION_ID(98130, 0x0), 0x1C6 };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 0x0), REL::Offset(0x1A5) };
+			REL::Relocation<std::uintptr_t> stackPasses{ RELOCATION_ID(98130, 0x0), REL::Offset(0x252) };
+			REL::Relocation<std::uintptr_t> stackFails{ RELOCATION_ID(98130, 0x0), REL::Offset(0x1C6) };
 
 			auto stackCheckCode = StackCheck(stackPasses.address(), stackFails.address(), reinterpret_cast<uintptr_t>(stackCheckIntercept));
 			REL::safe_fill(target.address(), REL::NOP, 0x21);
@@ -136,7 +136,7 @@ namespace VRHooks
 		static inline void Install()
 		{
 			assert(REL::Module::IsVR());
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(52368, 0x0), 0x38 };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(52368, 0x0), REL::Offset(0x38) };
 
 			stl::write_thunk_call<ReturnToMainMenuHook>(target.address());
 
