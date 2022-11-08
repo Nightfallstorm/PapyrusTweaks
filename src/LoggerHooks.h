@@ -45,7 +45,6 @@ namespace LoggerHooks
 				}
 			}
 			return result;
-
 		}
 
 		// copied from stackoverflow. Just checks if string contained in other string no case sensitivity
@@ -58,9 +57,10 @@ namespace LoggerHooks
 			return (it != strHaystack.end());
 		}
 
-		static std::string ConvertArgsToTypesAsString(RE::BSScrapArray<RE::BSScript::Variable>* a_varArray) {
+		static std::string ConvertArgsToTypesAsString(RE::BSScrapArray<RE::BSScript::Variable>* a_varArray)
+		{
 			std::string types = "(";
-			for (int i = 0; i < a_varArray->size(); i++) {
+			for (std::uint32_t i = 0; i < a_varArray->size(); i++) {
 				auto& variable = a_varArray->data()[i];
 				if (variable.IsObject() && variable.GetObject() && variable.GetObject().get()) {
 					types = types + variable.GetObject().get()->type.get()->GetName();
@@ -80,7 +80,7 @@ namespace LoggerHooks
 		static std::string ConvertFunctionToString(RE::BSScript::IFunction* function)
 		{
 			std::string params = "";
-			for (int i = 0; i < function->GetParamCount(); i++) {
+			for (std::uint32_t i = 0; i < function->GetParamCount(); i++) {
 				RE::BSFixedString name;
 				RE::BSScript::TypeInfo type;
 				function->GetParam(i, name, type);
