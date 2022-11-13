@@ -10,6 +10,9 @@ namespace VRHooks
 	static bool hasEnteredPlayroom = false;
 	struct VRPlayroomScriptDisable
 	{
+		static inline REL::Relocation<bool*> isInPlayroom{ REL::Offset(0x2FEB1C0) };
+		static inline REL::Relocation<bool*> bLoadVRPlayroom{ REL::Offset(0x1EAC188) };
+
 		// keep original checks, but also add VRPlayroom check for non-VRPlayroom scripts
 		static bool stackCheckIntercept(
 			std::uint32_t a_objectPackedData, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery)
@@ -19,22 +22,25 @@ namespace VRHooks
 				return false;
 			}
 
+			if (!*(bLoadVRPlayroom.get())) {
+				// skip VRPlayroom checks if player has bLoadVRPlayroom disabled
+				return true;
+			}
+
 			// add new playroom check. Only allow calls that have VRPlayroomQuest somewhere in the stack to proceed
-			bool* isInPlayroomPtr = reinterpret_cast<bool*>(REL::Offset(0x2FEB1C0).address());
-			bool isInPlayroom = *isInPlayroomPtr;
 			// All Quests can start initializing, including VRPlayroomQuest, before VRPlayroomQuest set `isInPlayroom` to true.
 			// Therefore, we will track when the player has entered the playroom, to only allow VRPlayroomQuest until that flag is set
-			if (!hasEnteredPlayroom && isInPlayroom) {
+			if (!hasEnteredPlayroom && *(isInPlayroom.get())) {
 				logger::info("We entered the playroom!");
 				hasEnteredPlayroom = true;
 			}
 
 			// check if player hasn't entered the playroom yet (only allow VRPlayroomQuest), or has entered the playroom AND is still in there
-			if (!hasEnteredPlayroom || (hasEnteredPlayroom && isInPlayroom)) {
+			if (!hasEnteredPlayroom || (hasEnteredPlayroom && *(isInPlayroom.get()))) {
 				if (!IsVRPlayroomQuestInStack(a_stack, a_funcCallQuery)) {
 					return false;
 				}
-			}
+			} 
 
 			return true;
 		}
