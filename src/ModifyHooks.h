@@ -1,5 +1,6 @@
 #pragma once
 #include "Settings.h"
+#include "TempChanges/SimpleAllocMemoryPagePolicy.h"
 #include <xbyak/xbyak.h>
 
 namespace ModifyHooks
@@ -118,7 +119,7 @@ namespace ModifyHooks
 		};
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
 		{
-			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
+			if (RETEMP::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
 				a_this->frozenLock.Lock();
 				a_this->isFrozen = a_frozen;
 				a_this->frozenLock.Unlock();
@@ -155,7 +156,7 @@ namespace ModifyHooks
 	{
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
 		{
-			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
+			if (RETEMP::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
 				a_this->frozenLock.Lock();
 				a_this->isFrozen = a_frozen;
 				a_this->frozenLock.Unlock();
@@ -178,7 +179,7 @@ namespace ModifyHooks
 	struct FixScriptPageAllocation
 	{
 		// BSScript::SimpleAllocMemoryPagePolicy::GetLargestAvailablePage
-		static RE::BSScript::IMemoryPagePolicy::AllocationStatus thunk(RE::BSScript::SimpleAllocMemoryPagePolicy* self, RE::BSTAutoPointer<RE::BSScript::MemoryPage>& a_newPage)
+		static RETEMP::BSScript::IMemoryPagePolicy::AllocationStatus thunk(RE::BSScript::SimpleAllocMemoryPagePolicy* self, RE::BSTAutoPointer<RE::BSScript::MemoryPage>& a_newPage)
 		{
 			self->dataLock.Lock();
 			int availablePageSize = self->maxAllocatedMemory - self->currentMemorySize;
@@ -187,7 +188,7 @@ namespace ModifyHooks
 				// set equal so the original function will return kOutOfMemory instead of unintentionally allocating a page
 				self->currentMemorySize = self->maxAllocatedMemory;
 			}
-			RE::BSScript::IMemoryPagePolicy::AllocationStatus result = func(self, a_newPage);
+			RETEMP::BSScript::IMemoryPagePolicy::AllocationStatus result = func(self, a_newPage);
 			if (availablePageSize < 0) {
 				// set back to original size
 				self->currentMemorySize = currentMemorySizeTemp;
@@ -203,7 +204,7 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			stl::write_vfunc<RE::BSScript::SimpleAllocMemoryPagePolicy, FixScriptPageAllocation>();
+			stl::write_vfunc<RETEMP::BSScript::SimpleAllocMemoryPagePolicy, FixScriptPageAllocation>();
 
 			logger::info("FixScriptPageAllocation set!");
 		}
