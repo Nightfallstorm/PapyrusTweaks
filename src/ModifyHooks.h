@@ -111,10 +111,7 @@ namespace ModifyHooks
 			{
 				Xbyak::Label funcLabel;
 
-				sub(rsp, 0x20);
-				call(ptr[rip + funcLabel]);
-				add(rsp, 0x20);
-				ret();
+				jmp(ptr[rip + funcLabel]);
 				L(funcLabel);
 				dq(funct);
 			}
@@ -173,8 +170,8 @@ namespace ModifyHooks
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53209, 54020), REL::VariantOffset(0xCC, 0xCC, 0xCC) };
 			stl::write_thunk_call<FixToggleScriptsDumpHook>(target.address());
 
-			logger::info("FixToggleScriptsSaveHook for stack dumps hooked at address {:x}", target.address());
-			logger::info("FixToggleScriptsSaveHook hooked at offset {:x}", target.offset());
+			logger::info("FixToggleScriptsDumpHook for stack dumps hooked at address {:x}", target.address());
+			logger::info("FixToggleScriptsDumpHook hooked at offset {:x}", target.offset());
 		}
 	};
 
