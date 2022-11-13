@@ -32,9 +32,11 @@ public:
 	{
 		void Load(CSimpleIniA& a_ini);
 
-		bool speedUpGameGetPlayer{ false };
-
 		bool runScriptsOnMainThread{ false };
+
+		std::string mainThreadClassesToBlacklist{ "UI, Input, Debug" };
+
+		std::string mainThreadMethodsToBlacklist{ "GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
 
 		bool disableScriptsInPlayroom{ false };
 

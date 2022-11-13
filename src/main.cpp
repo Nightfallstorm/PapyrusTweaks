@@ -12,8 +12,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kPostLoad:
 	case SKSE::MessagingInterface::kPostLoadGame:
 	case SKSE::MessagingInterface::kPostPostLoad:
-		ExperimentalHooks::installAfterLoadHooks();
-		break;
 	default:
 		break;
 	}

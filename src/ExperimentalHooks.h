@@ -1,5 +1,6 @@
 #pragma once
 #include "Settings.h"
+#include <string>
 #include <xbyak/xbyak.h>
 
 namespace ExperimentalHooks
@@ -8,79 +9,196 @@ namespace ExperimentalHooks
 	using StackID = RE::VMStackID;
 
 	static bool appliedLoadHooks = false;
-	static StackID currentMainThreadStackRunningID = -1;
-	// Let each stack being processed from function messages run on main thread once. Additional hooks are provided to let all non-latent function calls
-	// call immediately and return immediately since we can guarantee thread safety for those calls
-	struct RunScriptsOnMainThread
-	{
-		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery, bool a_callingFromTasklets)
-		{
-			if (!RE::SkyrimVM::GetSingleton()->isFrozen && a_stack && a_stack->owningTasklet && a_stack->owningTasklet.get()) {
-				currentMainThreadStackRunningID = a_stack->stackID;
-				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98520, 105176) };
-				void (*VMProcess)(RE::BSScript::Internal::CodeTasklet*) = reinterpret_cast<void (*)(RE::BSScript::Internal::CodeTasklet*)>(target.address());
-				VMProcess(a_stack->owningTasklet.get());
-				currentMainThreadStackRunningID = -1;
-				return 0;  // return value is discarded
-			}
 
-			return func(a_vm, a_stack, a_funcCallQuery, a_callingFromTasklets);
+	struct UpdateTaskletsHook
+	{
+		static void thunk(VM* a_vm, float a_budget)
+		{
+			if (a_vm->vmTasks.size()) {
+				auto copiedTasks = RE::BSTArray<RE::BSScript::Internal::CodeTasklet*>(a_vm->vmTasks);
+				a_vm->vmTasks.clear();
+				auto initialTime = RE::BSTimer::GetCurrentGlobalTimeMult();
+				RE::BSScript::Internal::CodeTasklet* taskletToProcess = copiedTasks.back();
+				while (taskletToProcess) {				
+					VMProcess(taskletToProcess);
+					copiedTasks.pop_back();
+					if (copiedTasks.size()) {
+						taskletToProcess = copiedTasks.back();
+					} else {
+						taskletToProcess = nullptr;
+					}
+					if (RE::BSTimer::GetCurrentGlobalTimeMult() - initialTime >= a_budget) {
+						break;
+					}
+				}
+				
+				if (copiedTasks.size()) {
+					// push leftovers for the next frame
+					for (auto taskletToPush : copiedTasks) {
+						a_vm->vmTasks.push_back(taskletToPush);
+					}
+				}
+				copiedTasks.clear();
+			}
 		}
 
+		static inline void VMProcess(RE::BSScript::Internal::CodeTasklet* a_self) {
+			using func_t = decltype(&VMProcess);
+			REL::Relocation<func_t> funct{ RELOCATION_ID(98520, 105176) };
+			return funct(a_self);
+		}
+
+		static inline std::uint32_t idx = 5;
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98134, 104857), REL::VariantOffset(0x18E, 0x18E, 0x18E) };
-			stl::write_thunk_call<RunScriptsOnMainThread>(target.address());
-			logger::info("RunScriptsOnMainThread hooked at address {:x}", target.address());
-			logger::info("RunScriptsOnMainThread hooked at offset {:x}", target.offset());
+			stl::write_vfunc<VM, UpdateTaskletsHook>();
+			logger::info("UpdateTaskletsHook vfunc set!");
 		}
 	};
 
-	struct RunVMFunctionCallsUnsynced
+	struct SkipTasksToJobHook
 	{
-		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery, bool a_callingFromTasklets)
+		static std::uint64_t thunk([[maybe_unused]] VM* a_vm, [[maybe_unused]] std::uint64_t a_joblist)
 		{
-			if (a_stack && a_stack->stackID == currentMainThreadStackRunningID) {
-				return func(a_vm, a_stack, a_funcCallQuery, 0);  // Set as NOT callingFromTasklets so we can execute as main thread
-			}
-			return func(a_vm, a_stack, a_funcCallQuery, a_callingFromTasklets);  // Run normally
+			// Skip
+			// TODO Maybe implement the job queue ourselves for multi-threading support?
+			return 0;
 		}
-
+		static inline std::uint32_t idx = 0x12;
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98548, 105204), REL::VariantOffset(0x56, 0x56, 0x56) };
-			stl::write_thunk_call<RunVMFunctionCallsUnsynced>(target.address());
-			logger::info("RunVMFunctionCalls hooked at address {:x}", target.address());
-			logger::info("RunVMFunctionCalls hooked at offset {:x}", target.offset());
+			stl::write_vfunc<VM, SkipTasksToJobHook>();
+			logger::info("SkipTasksToJobHook vfunc set!");
 		}
 	};
 
-	struct ReturnVMFunctionCallsUnsynced
+	struct CallVMUpdatesHook
 	{
-		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, bool unk, bool a_callingFromTasklets)
+		// Call SkyrimVM::Update and SkyrimVM::UpdateTasklets here, as vanilla only calls on main thread if paused
+		static void thunk(std::uint64_t unk, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3)
 		{
-			if (a_stack && a_stack->stackID == currentMainThreadStackRunningID) {
-				//logger::info("Running unsynced on stackID {}", a_stack->stackID);
-				return func(a_vm, a_stack, unk, 1);  // Set as callingFromTasklets so it returns immediately rather than suspending the stack for later
-			}
-			return func(a_vm, a_stack, unk, a_callingFromTasklets);  // Run normally
+			
+			ProcessRegisteredUpdates(RE::SkyrimVM::GetSingleton(), 0.0);
+			ProcessTasklets(RE::SkyrimVM::GetSingleton(), 0.0);
+			func(unk, unk1, unk2, unk3);  // execute original call
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		static void ProcessRegisteredUpdates(RE::SkyrimVM* a_vm, float a_budget) {
+			using func_t = decltype(&ProcessRegisteredUpdates);
+			REL::Relocation<func_t> funct{ RELOCATION_ID(53115, 53926) };
+			return funct(a_vm, a_budget);
 		}
 
-		static inline REL::Relocation<decltype(thunk)> func;
+		static void ProcessTasklets(RE::SkyrimVM* a_vm, float a_budget)
+		{
+			using func_t = decltype(&ProcessRegisteredUpdates);
+			REL::Relocation<func_t> funct{ RELOCATION_ID(53116, 53927) };
+			return funct(a_vm, a_budget);
+		}
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x344, 0x2D6, 0x3E9) };
+			stl::write_thunk_call<CallVMUpdatesHook>(target.address());
+			logger::info("CallVMUpdatesHook hooked at address {:x}", target.address());
+			logger::info("CallVMUpdatesHook hooked at offset {:x}", target.offset());
+		}
+	};
+
+	struct CallableFromTaskletInterceptHook
+	{
+		static inline std::vector<RE::BSFixedString> blacklistedNames;
+
+		static bool callableFromTaskletCheckIntercept(RE::BSScript::IFunction* a_function, bool a_callbableFromTasklets, [[maybe_unused]] RE::BSScript::Stack* a_stack)
+		{
+			if (a_function->CanBeCalledFromTasklets()) {
+				// already sped up, no need to check blacklist
+				return a_callbableFromTasklets;
+			}
+
+			for (auto objectName : blacklistedNames) {
+				if (a_function->GetObjectTypeName() == objectName || a_function->GetName() == objectName) {
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		static void InitBlacklist() {
+			if (Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist != "") {
+				auto mainThreadClasses = Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist;
+				mainThreadClasses.erase(remove(mainThreadClasses.begin(), mainThreadClasses.end(), ' '), mainThreadClasses.end()); // Trim whitespace
+				std::stringstream class_stream(mainThreadClasses);  //create string stream from the string
+				while (class_stream.good()) {
+					std::string substr;
+					getline(class_stream, substr, ',');  //get first string delimited by comma
+					blacklistedNames.push_back(substr);
+				}
+			}
+			
+			if (Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist != "") {
+				auto mainThreadMethods = Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist;
+				mainThreadMethods.erase(remove(mainThreadMethods.begin(), mainThreadMethods.end(), ' '), mainThreadMethods.end());  // Trim whitespace
+				std::stringstream method_stream(mainThreadMethods);  //create string stream from the string
+				while (method_stream.good()) {
+					std::string substr;
+					getline(method_stream, substr, ',');  //get first string delimited by comma
+					blacklistedNames.push_back(substr);
+				}
+			}
+		}
+
+		struct SwapCallableFromTaskletCheck : Xbyak::CodeGenerator
+		{
+			// We can trust rcx,rdx and r8 will be scratched over when we jump back to the skyirm code
+			SwapCallableFromTaskletCheck(std::uintptr_t jmpIfCheckPasses, std::uintptr_t jmpIfCheckFails, std::uintptr_t func)
+			{
+				Xbyak::Label funcLabel;
+				mov(rdx, r14b); // move a_callableFromTasklets into place, a_function is already in place
+				mov(r8, rbx); // Get stack for debugging purposes
+				call(ptr[rip + funcLabel]);
+				test(al, al);
+				jz("CheckFails");
+				L("CheckPasses");
+				mov(rcx, jmpIfCheckPasses);
+				jmp(rcx);
+				L("CheckFails");
+				mov(rcx, jmpIfCheckFails);
+				jmp(rcx);
+				L(funcLabel);
+				dq(func);
+			}
+		};
 
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x883, 0x898, 0x883) };
-			stl::write_thunk_call<ReturnVMFunctionCallsUnsynced>(target.address());
-			logger::info("ReturnVMFunctionCalls hooked at address {:x}", target.address());
-			logger::info("ReturnVMFunctionCalls hooked at offset {:x}", target.offset());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x60A, 0x61D, 0x60A) };
+			REL::Relocation<std::uintptr_t> shouldCallImmediately{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x62A, 0x63D, 0x62A) };
+			REL::Relocation<std::uintptr_t> shouldSuspend{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x617, 0x62A, 0x617) };
+
+			auto stackCheckCode = SwapCallableFromTaskletCheck(shouldCallImmediately.address(), shouldSuspend.address(), reinterpret_cast<uintptr_t>(callableFromTaskletCheckIntercept));
+			REL::safe_fill(target.address(), REL::NOP, 0xD);
+
+			auto& trampoline = SKSE::GetTrampoline();
+			SKSE::AllocTrampoline(stackCheckCode.getSize());
+			auto result = trampoline.allocate(stackCheckCode);
+			auto& trampoline2 = SKSE::GetTrampoline();
+			SKSE::AllocTrampoline(14);
+			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+
+			logger::info("CallableFromTaskletInterceptHook hooked at address {:x}", target.address());
+			logger::info("CallableFromTaskletInterceptHook hooked at offset {:x}", target.offset());
+			InitBlacklist();
+			
 		}
 	};
 
@@ -89,24 +207,11 @@ namespace ExperimentalHooks
 		auto settings = Settings::GetSingleton();
 
 		if (settings->experimental.runScriptsOnMainThread) {
-			RunScriptsOnMainThread::Install();
-			RunVMFunctionCallsUnsynced::Install();
-			ReturnVMFunctionCallsUnsynced::Install();
-		}
-	}
-
-	static inline void installAfterLoadHooks()
-	{
-		if (appliedLoadHooks) {
-			return;
-		}
-
-		if (RE::SkyrimVM::GetSingleton() && VM::GetSingleton()) {
-			appliedLoadHooks = true;
-			if (Settings::GetSingleton()->experimental.speedUpGameGetPlayer) {
-				VM::GetSingleton()->SetCallableFromTasklets("Game", "GetPlayer", true);
-				logger::info("Applied Game.GetPlayer speed up");
-			}
+			UpdateTaskletsHook::Install();
+			SkipTasksToJobHook::Install();
+			CallVMUpdatesHook::Install();
+			CallableFromTaskletInterceptHook::Install();
+			// TODO: Disable original skyrimVM update and update tasklets calls? Pausing the game executes scripts twice currently
 		}
 	}
 }

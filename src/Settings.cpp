@@ -52,7 +52,13 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 {
 	const char* section = "Experimental";
 
-	detail::get_value(a_ini, speedUpGameGetPlayer, section, "bSpeedUpGetPlayer", ";Speed up \"Game.GetPlayer\" calls by desyncing it from framerate. In theory, this shouldn't cause issues, but is experimental as this is not fully tested");
-	detail::get_value(a_ini, runScriptsOnMainThread, section, "bRunScriptsOnMainThread", ";Run scripts on main thread in addition to normal tasklets. This can significantly improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fUpdateBudgetMS in Skyrim's INI settings, as well as the current script load");
+	// 0.2.0
+	a_ini.Delete(section, "bSpeedUpGetPlayer", true);
+
+	detail::get_value(a_ini, runScriptsOnMainThread, section, "bRunScriptsOnMainThread", ";Run scripts on main thread only, and desync most native function calls. This can drastically improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fExtraTaskletBudgetMS in Skyrim's INI settings, as well as the current script load");
+	
+	// Keep blacklist hidden/hardcoded for now, may expose them in the future
+	//detail::get_value(a_ini, mainThreadClassesToBlacklist, section, "sMainThreadClassesToBlacklist", ";List of classes to exclude from being sped up by bRunScriptsOnMainThread.");
+	//detail::get_value(a_ini, mainThreadMethodsToBlacklist, section, "sMainThreadMethodsToBlacklist", ";List of method names to exclude from being sped up by bRunScriptsOnMainThread. Note that if a method OR class name matches, it will be excluded.");
 	detail::get_value(a_ini, disableScriptsInPlayroom, section, "bDisableScriptsInPlayroomVR", ";(VR-ONLY) Pauses all non-playroom scripts while in the VR playroom, so mod scripts only initialize once you actually enter a save/new game.\n;This is only experimental as it intentionally alters script behavior");
 }
