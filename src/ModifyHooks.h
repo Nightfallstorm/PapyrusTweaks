@@ -107,7 +107,7 @@ namespace ModifyHooks
 	{
 		struct CallThunk : Xbyak::CodeGenerator
 		{
-			CallThunk(std::uintptr_t func)
+			CallThunk(std::uintptr_t funct)
 			{
 				Xbyak::Label funcLabel;
 
@@ -116,7 +116,7 @@ namespace ModifyHooks
 				add(rsp, 0x20);
 				ret();
 				L(funcLabel);
-				dq(func);
+				dq(funct);
 			}
 		};
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
@@ -224,6 +224,9 @@ namespace ModifyHooks
 		}
 		if (settings->fixes.fixScriptPageAllocation) {
 			FixScriptPageAllocation::Install();
+		}
+		if (settings->tweaks.stackDumpTimeoutThreshold > 0) {
+			StackDumpTimeoutHook::Install();
 		}
 	}
 }
