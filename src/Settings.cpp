@@ -54,8 +54,9 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 
 	// 0.2.0
 	a_ini.Delete(section, "bSpeedUpGetPlayer", true);
+	a_ini.Delete(section, "bRunScriptsOnMainThread", true);
 
-	detail::get_value(a_ini, runScriptsOnMainThread, section, "bRunScriptsOnMainThread", ";Run scripts on main thread only, and desync most native function calls. This can drastically improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fExtraTaskletBudgetMS in Skyrim's INI settings, as well as the current script load");
+	detail::get_value(a_ini, runScriptsOnMainThread, section, "bRunScriptsOnMainThreadOnly", ";Run scripts on main thread only, and desync most native function calls. This can drastically improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fExtraTaskletBudgetMS in Skyrim's INI settings, as well as the current script load");
 	
 	// Keep blacklist hidden/hardcoded for now, may expose them in the future
 	//detail::get_value(a_ini, mainThreadClassesToBlacklist, section, "sMainThreadClassesToBlacklist", ";List of classes to exclude from being sped up by bRunScriptsOnMainThread.");
