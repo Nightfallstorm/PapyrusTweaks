@@ -104,8 +104,8 @@ namespace LoggerHooks
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x63D, 0x650, 0x63D) };  // TODO: confirm AE and VR
 			stl::write_thunk_call<ValidationSignaturesHook>(target.address());
 
-			logger::info("ValidationSignaturesHook hooked at address {}", fmt::format("{:x}", target.address()));
-			logger::info("ValidationSignaturesHook at offset {}", fmt::format("{:x}", target.offset()));
+			logger::info("ValidationSignaturesHook hooked at address {:x}", target.address());
+			logger::info("ValidationSignaturesHook at offset {:x}", target.offset());
 		}
 	};
 
