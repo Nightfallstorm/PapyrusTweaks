@@ -31,4 +31,4 @@ cmake --build build --config Release
 ```
 
 ## License
-[CC BY-SA 4.0](LICENSE)
+[GPL-3.0](LICENSE)
