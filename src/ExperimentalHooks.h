@@ -120,7 +120,15 @@ namespace ExperimentalHooks
 		{
 			if (a_function->CanBeCalledFromTasklets()) {
 				// already sped up, no need to check blacklist
-				return a_callbableFromTasklets;
+				return true;
+			}
+
+			if (a_function->GetIsNative()) {
+				auto nativeFunction = reinterpret_cast<RE::BSScript::NF_util::NativeFunctionBase*>(a_function);
+				if (nativeFunction->GetIsLatent()) {
+					// is latent, return false to keep it delayed
+					return false;
+				}
 			}
 
 			for (auto objectName : blacklistedNames) {
