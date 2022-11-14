@@ -34,9 +34,9 @@ public:
 
 		bool runScriptsOnMainThread{ false };
 
-		std::string mainThreadClassesToBlacklist{ "UI, Input, Debug" };
+		std::string mainThreadClassesToBlacklist{ "MFGConsoleFunc, Input, Debug, Utility" };
 
-		std::string mainThreadMethodsToBlacklist{ "GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
+		std::string mainThreadMethodsToBlacklist{ "DisablePlayerControls, EnablePlayerControls, GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
 
 		bool disableScriptsInPlayroom{ false };
 
