@@ -108,6 +108,11 @@ namespace ExperimentalHooks
 		{
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x344, 0x2D6, 0x3E9) };
 			stl::write_thunk_call<CallVMUpdatesHook>(target.address());
+			// remove original VM update calls in main thread, which only occurred on game pause
+			REL::Relocation<std::uintptr_t> originalUpdate{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x38C, 0x553, 0x432) };
+			REL::Relocation<std::uintptr_t> originalUpdateTasklets{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x39B, 0x542, 0x441) };
+			REL::safe_fill(originalUpdate.address(), REL::NOP, 0x5);
+			REL::safe_fill(originalUpdateTasklets.address(), REL::NOP, 0x5);
 			logger::info("CallVMUpdatesHook hooked at address {:x}", target.address());
 			logger::info("CallVMUpdatesHook hooked at offset {:x}", target.offset());
 		}
@@ -225,7 +230,6 @@ namespace ExperimentalHooks
 			SkipTasksToJobHook::Install();
 			CallVMUpdatesHook::Install();
 			CallableFromTaskletInterceptHook::Install();
-			// TODO: Disable original skyrimVM update and update tasklets calls? Pausing the game executes scripts twice currently
 		}
 	}
 }
