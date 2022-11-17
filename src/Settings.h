@@ -34,9 +34,9 @@ public:
 
 		bool runScriptsOnMainThread{ false };
 
-		std::string mainThreadClassesToBlacklist{ "MFGConsoleFunc, Input, Debug, Utility" };
+		std::string mainThreadClassesToBlacklist{ "MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
 
-		std::string mainThreadMethodsToBlacklist{ "DisablePlayerControls, EnablePlayerControls, GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
+		std::string mainThreadMethodsToBlacklist{ "ForceFirstPerson, ForceThirdPerson, DisablePlayerControls, EnablePlayerControls, GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
 
 		bool disableScriptsInPlayroom{ false };
 

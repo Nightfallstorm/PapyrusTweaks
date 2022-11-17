@@ -1,6 +1,7 @@
 #include "ExperimentalHooks.h"
 #include "LoggerHooks.h"
 #include "ModifyHooks.h"
+#include "Papyrus.h"
 #include "Settings.h"
 #include "VRHooks.h"
 
@@ -87,5 +88,8 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	LoggerHooks::InstallHooks();
 	VRHooks::InstallHooks();
 	ExperimentalHooks::InstallHooks();
+
+	auto papyrus = SKSE::GetPapyrusInterface();
+	papyrus->Register(Papyrus::Bind);
 	return true;
 }

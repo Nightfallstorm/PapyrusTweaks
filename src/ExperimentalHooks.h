@@ -9,6 +9,7 @@ namespace ExperimentalHooks
 	using StackID = RE::VMStackID;
 
 	static bool appliedLoadHooks = false;
+	static inline std::set<RE::VMStackID> excludedStacks;
 
 	struct UpdateTaskletsHook
 	{
@@ -116,10 +117,10 @@ namespace ExperimentalHooks
 	{
 		static inline std::vector<RE::BSFixedString> blacklistedNames;
 
-		static bool callableFromTaskletCheckIntercept(RE::BSScript::IFunction* a_function, bool a_callbableFromTasklets, [[maybe_unused]] RE::BSScript::Stack* a_stack)
+		static bool callableFromTaskletCheckIntercept(RE::BSScript::IFunction* a_function, [[maybe_unused]] bool a_callbableFromTasklets, [[maybe_unused]] RE::BSScript::Stack* a_stack)
 		{
 			if (a_function->CanBeCalledFromTasklets()) {
-				// already sped up, no need to check blacklist
+				// already fast, no need to check blacklist
 				return true;
 			}
 
@@ -129,6 +130,11 @@ namespace ExperimentalHooks
 					// is latent, return false to keep it delayed
 					return false;
 				}
+			}
+
+			if (excludedStacks.find(a_stack->stackID) != excludedStacks.end()) {
+				// stack called DisableFastMode(), return false to keep normal behavior
+				return false;
 			}
 
 			for (auto objectName : blacklistedNames) {

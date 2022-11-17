@@ -9,4 +9,5 @@ set(headers ${headers}
 	src/TempChanges/IMemoryPagePolicy.h
 	src/TempChanges/Script.h
 	src/TempChanges/SimpleAllocMemoryPagePolicy.h
+	src/Papyrus.h
 )
