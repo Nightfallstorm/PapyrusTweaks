@@ -38,6 +38,10 @@ public:
 
 		std::string mainThreadMethodsToBlacklist{ "ForceFirstPerson, ForceThirdPerson, DisablePlayerControls, EnablePlayerControls, GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
 
+		bool bypassMemoryLimit{ false };
+
+		bool bypassCorruptedSave{ false };
+		
 		bool disableScriptsInPlayroom{ false };
 
 	} experimental;

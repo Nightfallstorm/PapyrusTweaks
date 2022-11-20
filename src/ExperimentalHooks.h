@@ -20,7 +20,7 @@ namespace ExperimentalHooks
 				a_vm->vmTasks.clear();
 				auto initialTime = RE::BSTimer::GetCurrentGlobalTimeMult();
 				RE::BSScript::Internal::CodeTasklet* taskletToProcess = copiedTasks.back();
-				while (taskletToProcess) {				
+				while (taskletToProcess) {
 					VMProcess(taskletToProcess);
 					copiedTasks.pop_back();
 					if (copiedTasks.size()) {
@@ -32,7 +32,7 @@ namespace ExperimentalHooks
 						break;
 					}
 				}
-				
+
 				if (copiedTasks.size()) {
 					// push leftovers for the next frame
 					for (auto taskletToPush : copiedTasks) {
@@ -43,7 +43,8 @@ namespace ExperimentalHooks
 			}
 		}
 
-		static inline void VMProcess(RE::BSScript::Internal::CodeTasklet* a_self) {
+		static inline void VMProcess(RE::BSScript::Internal::CodeTasklet* a_self)
+		{
 			using func_t = decltype(&VMProcess);
 			REL::Relocation<func_t> funct{ RELOCATION_ID(98520, 105176) };
 			return funct(a_self);
@@ -84,14 +85,14 @@ namespace ExperimentalHooks
 		// Call SkyrimVM::Update and SkyrimVM::UpdateTasklets here, as vanilla only calls on main thread if paused
 		static void thunk(std::uint64_t unk, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3)
 		{
-			
 			ProcessRegisteredUpdates(RE::SkyrimVM::GetSingleton(), 0.0);
 			ProcessTasklets(RE::SkyrimVM::GetSingleton(), 0.0);
 			func(unk, unk1, unk2, unk3);  // execute original call
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
-		static void ProcessRegisteredUpdates(RE::SkyrimVM* a_vm, float a_budget) {
+		static void ProcessRegisteredUpdates(RE::SkyrimVM* a_vm, float a_budget)
+		{
 			using func_t = decltype(&ProcessRegisteredUpdates);
 			REL::Relocation<func_t> funct{ RELOCATION_ID(53115, 53926) };
 			return funct(a_vm, a_budget);
@@ -147,26 +148,27 @@ namespace ExperimentalHooks
 					return false;
 				}
 			}
-			
+
 			return true;
 		}
 
-		static void InitBlacklist() {
+		static void InitBlacklist()
+		{
 			if (Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist != "") {
 				auto mainThreadClasses = Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist;
-				mainThreadClasses.erase(remove(mainThreadClasses.begin(), mainThreadClasses.end(), ' '), mainThreadClasses.end()); // Trim whitespace
-				std::stringstream class_stream(mainThreadClasses);  //create string stream from the string
+				mainThreadClasses.erase(remove(mainThreadClasses.begin(), mainThreadClasses.end(), ' '), mainThreadClasses.end());  // Trim whitespace
+				std::stringstream class_stream(mainThreadClasses);                                                                  //create string stream from the string
 				while (class_stream.good()) {
 					std::string substr;
 					getline(class_stream, substr, ',');  //get first string delimited by comma
 					blacklistedNames.push_back(substr);
 				}
 			}
-			
+
 			if (Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist != "") {
 				auto mainThreadMethods = Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist;
 				mainThreadMethods.erase(remove(mainThreadMethods.begin(), mainThreadMethods.end(), ' '), mainThreadMethods.end());  // Trim whitespace
-				std::stringstream method_stream(mainThreadMethods);  //create string stream from the string
+				std::stringstream method_stream(mainThreadMethods);                                                                 //create string stream from the string
 				while (method_stream.good()) {
 					std::string substr;
 					getline(method_stream, substr, ',');  //get first string delimited by comma
@@ -181,8 +183,8 @@ namespace ExperimentalHooks
 			SwapCallableFromTaskletCheck(std::uintptr_t jmpIfCheckPasses, std::uintptr_t jmpIfCheckFails, std::uintptr_t func)
 			{
 				Xbyak::Label funcLabel;
-				mov(rdx, r14b); // move a_callableFromTasklets into place, a_function is already in place
-				mov(r8, rbx); // Get stack for debugging purposes
+				mov(rdx, r14b);  // move a_callableFromTasklets into place, a_function is already in place
+				mov(r8, rbx);    // Get stack for debugging purposes
 				call(ptr[rip + funcLabel]);
 				test(al, al);
 				jz("CheckFails");
@@ -217,7 +219,47 @@ namespace ExperimentalHooks
 			logger::info("CallableFromTaskletInterceptHook hooked at address {:x}", target.address());
 			logger::info("CallableFromTaskletInterceptHook hooked at offset {:x}", target.offset());
 			InitBlacklist();
-			
+		}
+	};
+
+	// TODO: Expand messagebox message? Also AE/VR
+	struct BypassCorruptSaveHook
+	{
+		// strip the `ResetGame` callback
+		struct XorRDX : Xbyak::CodeGenerator
+		{
+			XorRDX()
+			{
+				xor_(rdx, rdx);
+			}
+		};
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53207, 0), REL::VariantOffset(0x4D, 0x0, 0x0) };
+			auto xorCode = XorRDX();
+			REL::safe_fill(target.address(), REL::NOP, 0x7);
+			assert(xorCode.getSize < 0x7);
+			REL::safe_write(target.address(), xorCode.getCode(), xorCode.getSize());
+
+			logger::info("Hooked BypassCorruptSaveHook at address {:x}", target.address());
+			logger::info("Hooked BypassCorruptSaveHook at offset {:x}", target.offset());
+		}
+	};
+
+	// TODO: AE/VR
+	struct KeepIgnoreMemoryLimitFlag
+	{
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 0), REL::VariantOffset(0x101, 0x0, 0x0) };
+			std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 }; // mov    BYTE PTR [rcx+0x94],0x1
+			REL::safe_fill(target.address(), REL::NOP, 0x7);
+			REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
+
+			logger::info("Hooked KeepIgnoreMemoryLimitFlag at address {:x}", target.address());
+			logger::info("Hooked KeepIgnoreMemoryLimitFlag at offset {:x}", target.offset());
 		}
 	};
 
@@ -230,6 +272,12 @@ namespace ExperimentalHooks
 			SkipTasksToJobHook::Install();
 			CallVMUpdatesHook::Install();
 			CallableFromTaskletInterceptHook::Install();
+		}
+		if (settings->experimental.bypassCorruptedSave) {
+			BypassCorruptSaveHook::Install();
+		}
+		if (settings->experimental.bypassMemoryLimit) {
+			KeepIgnoreMemoryLimitFlag::Install();
 		}
 	}
 }
