@@ -6,8 +6,5 @@ set(headers ${headers}
 	src/VRHooks.h
 	src/Settings.h
 	src/Util.h
-	src/TempChanges/IMemoryPagePolicy.h
-	src/TempChanges/Script.h
-	src/TempChanges/SimpleAllocMemoryPagePolicy.h
 	src/Papyrus.h
 )

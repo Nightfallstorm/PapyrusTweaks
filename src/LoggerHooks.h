@@ -1,6 +1,5 @@
 #pragma once
 #pragma warning(2: 4235)
-#include "TempChanges/Script.h"
 #include "Settings.h"
 #include <string.h>
 
