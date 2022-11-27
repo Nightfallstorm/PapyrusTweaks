@@ -38,10 +38,10 @@ public:
 
 		std::string mainThreadMethodPrefixesToExclude{
 			/* Default blocks all vanilla functions that aren't read-only */
-			"Activate, AdvanceSkill, Allow, Disallow, Apply, Change, Clear, Complete, Create, Delete, Mod, Move, Open, RequestSave, Show, TempClone, Try, GetQuest, GetAnimation, Fade, Send, ChangeAnimation, Block, Translate, EvaluatePackage, Place, Equip, Play, Set, RemoteCast, Cast, DoCombatSpellApply, Dispel, Add, Remove, Force, Disable, Enable, Reset, Stop, Start, Update, Register, Unregister"
+			"Activate, Add, AdvanceSkill, Allow, Apply, Block, Cast, Change, Clear, Complete, Create, Delete, Disable, Disallow, Dispel, DoCombatSpellApply, Enable, Equip, EvaluatePackage, Fade, Force, GetAnimation, GetQuest, Mod, Move, Open, Place, Play, Register, RemoteCast, Remove, RequestSave, Reset, Send, Set, Show, Start, Stop, TempClone, Translate, Try, Update, Unregister"
 		};
 
-		float mainThreadTaskletTime{ 1.2 };
+		float mainThreadTaskletTime{ 1.2f };
 
 		bool bypassMemoryLimit{ false };
 

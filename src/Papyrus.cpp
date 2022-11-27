@@ -11,14 +11,12 @@ namespace Papyrus
 
 	bool DisableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*)
 	{
-		ExperimentalHooks::excludedStacks.insert(stackID);
+		ExperimentalHooks::CallableFromTaskletInterceptHook::ExcludeStackFromSpeedUp(stackID);
 		return true;
 	}
 
 	bool EnableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*) {
-		if (ExperimentalHooks::excludedStacks.find(stackID) != ExperimentalHooks::excludedStacks.end()) {
-			ExperimentalHooks::excludedStacks.erase(stackID);
-		}	
+		ExperimentalHooks::CallableFromTaskletInterceptHook::UnexcludeStackFromSpeedup(stackID);	
 		return true;
 	}
 

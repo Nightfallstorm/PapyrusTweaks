@@ -8,9 +8,6 @@ namespace ExperimentalHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
-	static bool appliedLoadHooks = false;
-	static inline std::set<RE::VMStackID> excludedStacks;
-
 	struct ProcessTaskletsHook
 	{
 		static inline float taskletBudget = 0;
@@ -145,7 +142,8 @@ namespace ExperimentalHooks
 	{
 		static inline std::vector<RE::BSFixedString> excludedClasses;
 		static inline std::vector<RE::BSFixedString> excludedMethodPrefixes;
-
+		static inline std::set<RE::VMStackID> excludedStacks;
+		static inline std::mutex excludedStacksLock;
 		// Intercept VMProcess's check if a function is callable from taskelts (can be called without syncing to framerate)
 		// and return true for all non-excluded functions/classes (making the call immediate instead of waiting until the next frame)
 		static bool callableFromTaskletCheckIntercept(RE::BSScript::IFunction* a_function, [[maybe_unused]] bool a_callbableFromTasklets, [[maybe_unused]] RE::BSScript::Stack* a_stack)
@@ -163,10 +161,13 @@ namespace ExperimentalHooks
 				}
 			}
 
+			excludedStacksLock.lock();
 			if (excludedStacks.find(a_stack->stackID) != excludedStacks.end()) {
 				// stack called PapyrusTweaks.DisableFastMode(), return false to keep normal behavior
+				excludedStacksLock.unlock();
 				return false;
 			}
+			excludedStacksLock.unlock();
 
 			for (auto className : excludedClasses) {
 				if (a_function->GetObjectTypeName() == className) {
@@ -208,6 +209,21 @@ namespace ExperimentalHooks
 					logger::info("Excluding method prefix: {}", substr);
 				}
 			}
+		}
+
+		static void ExcludeStackFromSpeedUp(RE::VMStackID a_id)
+		{
+			excludedStacksLock.lock();
+			excludedStacks.insert(a_id);
+			excludedStacksLock.unlock();
+		}
+
+		static void UnexcludeStackFromSpeedup(RE::VMStackID a_id) {
+			excludedStacksLock.lock();
+			if (excludedStacks.find(a_id) != excludedStacks.end()) {
+				excludedStacks.erase(a_id);
+			}
+			excludedStacksLock.unlock();
 		}
 
 		struct SwapCallableFromTaskletCheck : Xbyak::CodeGenerator
@@ -272,7 +288,7 @@ namespace ExperimentalHooks
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53207, 54018), REL::VariantOffset(0x4D, 0x4D, 0x4D) };
 			auto xorCode = XorRDX();
 			REL::safe_fill(target.address(), REL::NOP, 0x7);
-			assert(xorCode.getSize < 0x7);
+			assert(xorCode.getSize() < 0x7);
 			REL::safe_write(target.address(), xorCode.getCode(), xorCode.getSize());
 
 			logger::info("Hooked BypassCorruptSaveHook at address {:x}", target.address());
@@ -292,7 +308,7 @@ namespace ExperimentalHooks
 			if (REL::Module::IsAE()) {
 				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x86, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rsi+0x94],0x1
 				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
-			} else if (REL::Module::IsSE) {
+			} else if (REL::Module::IsSE()) {
 				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rcx+0x94],0x1
 				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
 			} else {
