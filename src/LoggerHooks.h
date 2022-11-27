@@ -100,7 +100,7 @@ namespace LoggerHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x63D, 0x650, 0x63D) };  // TODO: confirm AE and VR
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98130, 104853), REL::VariantOffset(0x63D, 0x650, 0x63D) };
 			stl::write_thunk_call<ValidationSignaturesHook>(target.address());
 
 			logger::info("ValidationSignaturesHook hooked at address {:x}", target.address());

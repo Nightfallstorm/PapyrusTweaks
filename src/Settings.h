@@ -34,14 +34,19 @@ public:
 
 		bool runScriptsOnMainThread{ false };
 
-		std::string mainThreadClassesToBlacklist{ "MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
+		std::string mainThreadClassesToExclude{ "UI, ConsoleUtil, PO3_SKSEFunctions, MfgConsole, MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
 
-		std::string mainThreadMethodsToBlacklist{ "ForceFirstPerson, ForceThirdPerson, DisablePlayerControls, EnablePlayerControls, GetQuest, SetFogColor, SetFogPlanes, SetFogPower, Reset" };
+		std::string mainThreadMethodPrefixesToExclude{
+			/* Default blocks all vanilla functions that aren't read-only */
+			"Activate, AdvanceSkill, Allow, Disallow, Apply, Change, Clear, Complete, Create, Delete, Mod, Move, Open, RequestSave, Show, TempClone, Try, GetQuest, GetAnimation, Fade, Send, ChangeAnimation, Block, Translate, EvaluatePackage, Place, Equip, Play, Set, RemoteCast, Cast, DoCombatSpellApply, Dispel, Add, Remove, Force, Disable, Enable, Reset, Stop, Start, Update, Register, Unregister"
+		};
+
+		float mainThreadTaskletTime{ 1.2 };
 
 		bool bypassMemoryLimit{ false };
 
 		bool bypassCorruptedSave{ false };
-		
+
 		bool disableScriptsInPlayroom{ false };
 
 	} experimental;

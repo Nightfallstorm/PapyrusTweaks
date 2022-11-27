@@ -11,15 +11,19 @@ namespace ExperimentalHooks
 	static bool appliedLoadHooks = false;
 	static inline std::set<RE::VMStackID> excludedStacks;
 
-	struct UpdateTaskletsHook
+	struct ProcessTaskletsHook
 	{
-		static void thunk(VM* a_vm, float a_budget)
+		static inline float taskletBudget = 0;
+		// Manual implementation of VM->ProcessExtraTasklets. The original doesn't respect the papyrus budget,
+		// but our implementation will to prevent framerate spikes
+		static void thunk(VM* a_vm, [[maybe_unused]] float a_budget)
 		{
 			if (a_vm->vmTasks.size()) {
 				auto copiedTasks = RE::BSTArray<RE::BSScript::Internal::CodeTasklet*>(a_vm->vmTasks);
 				a_vm->vmTasks.clear();
-				auto initialTime = RE::BSTimer::GetCurrentGlobalTimeMult();
-				RE::BSScript::Internal::CodeTasklet* taskletToProcess = copiedTasks.back();
+				
+				auto initialTime = 1000.0 * GetCounter() / GetFrequency();
+				auto taskletToProcess = copiedTasks.back();
 				while (taskletToProcess) {
 					VMProcess(taskletToProcess);
 					copiedTasks.pop_back();
@@ -28,7 +32,8 @@ namespace ExperimentalHooks
 					} else {
 						taskletToProcess = nullptr;
 					}
-					if (RE::BSTimer::GetCurrentGlobalTimeMult() - initialTime >= a_budget) {
+					
+					if (taskletBudget > 0 && (1000.0 * GetCounter() / GetFrequency()) - initialTime > taskletBudget) {
 						break;
 					}
 				}
@@ -43,6 +48,33 @@ namespace ExperimentalHooks
 			}
 		}
 
+		// copied from https://gist.github.com/nkuln/1300858/2b6f3f48131652ddff924bcb02664b669b8df714 
+		static inline LONGLONG GetCounter()
+		{
+			LARGE_INTEGER counter;
+
+			if (!::QueryPerformanceCounter(&counter))
+				return -1;
+
+			return counter.QuadPart;
+		}
+
+		static inline LONGLONG frequency;
+		static inline LONGLONG GetFrequency()
+		{
+			if (frequency != 0) {
+				return frequency;
+			} else {
+				LARGE_INTEGER freq;
+
+				if (!::QueryPerformanceFrequency(&freq))
+					return -1;
+
+				frequency = freq.QuadPart;
+				return frequency;
+			}
+		}
+
 		static inline void VMProcess(RE::BSScript::Internal::CodeTasklet* a_self)
 		{
 			using func_t = decltype(&VMProcess);
@@ -54,15 +86,18 @@ namespace ExperimentalHooks
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		// Install our hook at the specified address
-		static inline void Install()
+		static inline void Install(float a_budget)
 		{
-			stl::write_vfunc<VM, UpdateTaskletsHook>();
+			taskletBudget = a_budget;
+			stl::write_vfunc<VM, ProcessTaskletsHook>();
 			logger::info("UpdateTaskletsHook vfunc set!");
 		}
 	};
 
 	struct SkipTasksToJobHook
 	{
+		// Skip VM->TasksToJobs to keep the tasklets inside the VM instead of outsourcing it to the job lists
+		// Normally, VM only processes tasklets when the world is paused, but we will process it manually ourselves in a different hook
 		static std::uint64_t thunk([[maybe_unused]] VM* a_vm, [[maybe_unused]] std::uint64_t a_joblist)
 		{
 			// Skip
@@ -82,38 +117,25 @@ namespace ExperimentalHooks
 
 	struct CallVMUpdatesHook
 	{
-		// Call SkyrimVM::Update and SkyrimVM::UpdateTasklets here, as vanilla only calls on main thread if paused
-		static void thunk(std::uint64_t unk, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3)
+		// Call SkyrimVM::UpdateTasklets here in addition to the normal Processing of updates
+		static void thunk(RE::SkyrimVM* a_vm, float a_budget)
 		{
-			ProcessRegisteredUpdates(RE::SkyrimVM::GetSingleton(), 0.0);
+			func(a_vm, a_budget);  // SkyrimVM::ProcessRegistedUpdates
 			ProcessTasklets(RE::SkyrimVM::GetSingleton(), 0.0);
-			func(unk, unk1, unk2, unk3);  // execute original call
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
-		static void ProcessRegisteredUpdates(RE::SkyrimVM* a_vm, float a_budget)
-		{
-			using func_t = decltype(&ProcessRegisteredUpdates);
-			REL::Relocation<func_t> funct{ RELOCATION_ID(53115, 53926) };
-			return funct(a_vm, a_budget);
-		}
-
 		static void ProcessTasklets(RE::SkyrimVM* a_vm, float a_budget)
 		{
-			using func_t = decltype(&ProcessRegisteredUpdates);
+			using func_t = decltype(&ProcessTasklets);
 			REL::Relocation<func_t> funct{ RELOCATION_ID(53116, 53927) };
 			return funct(a_vm, a_budget);
 		}
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x344, 0x2D6, 0x3E9) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(38118, 39074), REL::VariantOffset(0x1E, 0x1E, 0x32) };
 			stl::write_thunk_call<CallVMUpdatesHook>(target.address());
-			// remove original VM update calls in main thread, which only occurred on game pause
-			REL::Relocation<std::uintptr_t> originalUpdate{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x38C, 0x553, 0x432) };
-			REL::Relocation<std::uintptr_t> originalUpdateTasklets{ RELOCATION_ID(35565, 36564), REL::VariantOffset(0x39B, 0x542, 0x441) };
-			REL::safe_fill(originalUpdate.address(), REL::NOP, 0x5);
-			REL::safe_fill(originalUpdateTasklets.address(), REL::NOP, 0x5);
 			logger::info("CallVMUpdatesHook hooked at address {:x}", target.address());
 			logger::info("CallVMUpdatesHook hooked at offset {:x}", target.offset());
 		}
@@ -121,58 +143,69 @@ namespace ExperimentalHooks
 
 	struct CallableFromTaskletInterceptHook
 	{
-		static inline std::vector<RE::BSFixedString> blacklistedNames;
+		static inline std::vector<RE::BSFixedString> excludedClasses;
+		static inline std::vector<RE::BSFixedString> excludedMethodPrefixes;
 
+		// Intercept VMProcess's check if a function is callable from taskelts (can be called without syncing to framerate)
+		// and return true for all non-excluded functions/classes (making the call immediate instead of waiting until the next frame)
 		static bool callableFromTaskletCheckIntercept(RE::BSScript::IFunction* a_function, [[maybe_unused]] bool a_callbableFromTasklets, [[maybe_unused]] RE::BSScript::Stack* a_stack)
 		{
 			if (a_function->CanBeCalledFromTasklets()) {
-				// already fast, no need to check blacklist
+				// already fast, no need to check excluded functions
 				return true;
 			}
 
 			if (a_function->GetIsNative()) {
 				auto nativeFunction = reinterpret_cast<RE::BSScript::NF_util::NativeFunctionBase*>(a_function);
 				if (nativeFunction->GetIsLatent()) {
-					// is latent, return false to keep it delayed
+					// is latent, return false to keep it delayed since it takes real-world time anyways
 					return false;
 				}
 			}
 
 			if (excludedStacks.find(a_stack->stackID) != excludedStacks.end()) {
-				// stack called DisableFastMode(), return false to keep normal behavior
+				// stack called PapyrusTweaks.DisableFastMode(), return false to keep normal behavior
 				return false;
 			}
 
-			for (auto objectName : blacklistedNames) {
-				if (a_function->GetObjectTypeName() == objectName || a_function->GetName() == objectName) {
+			for (auto className : excludedClasses) {
+				if (a_function->GetObjectTypeName() == className) {
 					return false;
 				}
 			}
 
+			for (auto methodPrefix : excludedMethodPrefixes) {
+				if (std::string_view(a_function->GetName()).starts_with(methodPrefix)) {
+					return false;
+				}
+			}
+			//logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->GetName());
 			return true;
 		}
 
 		static void InitBlacklist()
 		{
-			if (Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist != "") {
-				auto mainThreadClasses = Settings::GetSingleton()->experimental.mainThreadClassesToBlacklist;
+			if (Settings::GetSingleton()->experimental.mainThreadClassesToExclude != "") {
+				auto mainThreadClasses = Settings::GetSingleton()->experimental.mainThreadClassesToExclude;
 				mainThreadClasses.erase(remove(mainThreadClasses.begin(), mainThreadClasses.end(), ' '), mainThreadClasses.end());  // Trim whitespace
 				std::stringstream class_stream(mainThreadClasses);                                                                  //create string stream from the string
 				while (class_stream.good()) {
 					std::string substr;
 					getline(class_stream, substr, ',');  //get first string delimited by comma
-					blacklistedNames.push_back(substr);
+					excludedClasses.push_back(substr);
+					logger::info("Excluding class: {}", substr);
 				}
 			}
 
-			if (Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist != "") {
-				auto mainThreadMethods = Settings::GetSingleton()->experimental.mainThreadMethodsToBlacklist;
+			if (Settings::GetSingleton()->experimental.mainThreadMethodPrefixesToExclude != "") {
+				auto mainThreadMethods = Settings::GetSingleton()->experimental.mainThreadMethodPrefixesToExclude;
 				mainThreadMethods.erase(remove(mainThreadMethods.begin(), mainThreadMethods.end(), ' '), mainThreadMethods.end());  // Trim whitespace
 				std::stringstream method_stream(mainThreadMethods);                                                                 //create string stream from the string
 				while (method_stream.good()) {
 					std::string substr;
 					getline(method_stream, substr, ',');  //get first string delimited by comma
-					blacklistedNames.push_back(substr);
+					excludedMethodPrefixes.push_back(substr);
+					logger::info("Excluding method prefix: {}", substr);
 				}
 			}
 		}
@@ -184,7 +217,7 @@ namespace ExperimentalHooks
 			{
 				Xbyak::Label funcLabel;
 				mov(rdx, r14b);  // move a_callableFromTasklets into place, a_function is already in place
-				mov(r8, rbx);    // Get stack for debugging purposes
+				mov(r8, rbx);    // move a_stack into place
 				call(ptr[rip + funcLabel]);
 				test(al, al);
 				jz("CheckFails");
@@ -222,7 +255,7 @@ namespace ExperimentalHooks
 		}
 	};
 
-	// TODO: Expand messagebox message? Also AE/VR
+	// TODO: Expand messagebox message?
 	struct BypassCorruptSaveHook
 	{
 		// strip the `ResetGame` callback
@@ -236,7 +269,7 @@ namespace ExperimentalHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53207, 0), REL::VariantOffset(0x4D, 0x0, 0x0) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53207, 54018), REL::VariantOffset(0x4D, 0x4D, 0x4D) };
 			auto xorCode = XorRDX();
 			REL::safe_fill(target.address(), REL::NOP, 0x7);
 			assert(xorCode.getSize < 0x7);
@@ -247,16 +280,25 @@ namespace ExperimentalHooks
 		}
 	};
 
-	// TODO: AE/VR
+	// Keep `IgnoreMemoryLimit` flag to 1 regardless of VM overstressed status
 	struct KeepIgnoreMemoryLimitFlag
 	{
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 0), REL::VariantOffset(0x101, 0x0, 0x0) };
-			std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 }; // mov    BYTE PTR [rcx+0x94],0x1
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 54006), REL::VariantOffset(0x101, 0x1AD, 0x101) };
+
 			REL::safe_fill(target.address(), REL::NOP, 0x7);
-			REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
+			if (REL::Module::IsAE()) {
+				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x86, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rsi+0x94],0x1
+				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
+			} else if (REL::Module::IsSE) {
+				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rcx+0x94],0x1
+				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
+			} else {
+				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x9C, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rcx+0x9C],0x1
+				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
+			}			
 
 			logger::info("Hooked KeepIgnoreMemoryLimitFlag at address {:x}", target.address());
 			logger::info("Hooked KeepIgnoreMemoryLimitFlag at offset {:x}", target.offset());
@@ -268,7 +310,10 @@ namespace ExperimentalHooks
 		auto settings = Settings::GetSingleton();
 
 		if (settings->experimental.runScriptsOnMainThread) {
-			UpdateTaskletsHook::Install();
+			if (settings->experimental.mainThreadTaskletTime < 0) {
+				settings->experimental.mainThreadTaskletTime = 0;
+			}
+			ProcessTaskletsHook::Install(settings->experimental.mainThreadTaskletTime);
 			SkipTasksToJobHook::Install();
 			CallVMUpdatesHook::Install();
 			CallableFromTaskletInterceptHook::Install();
