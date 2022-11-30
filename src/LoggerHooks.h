@@ -17,7 +17,6 @@ namespace LoggerHooks
 			if (a_outString[0]) {
 				// error occurred, let's improve it
 				if (findStringIC(a_outString, "Type mismatch for argument")) {
-					logger::info("Type mismatch");
 					char mismatchedArgString[1072];
 					std::string mismatchedFormat = "Function %s received incompatible arguments! Received types %s instead!";
 					std::string types = ConvertArgsToTypesAsString(a_varArray);
@@ -25,14 +24,12 @@ namespace LoggerHooks
 						ConvertFunctionToString(function).c_str(), types.c_str());
 					strcpy_s(a_outString, a_bufferSize, mismatchedArgString);
 				} else if (findStringIC(a_outString, "Incorrect number of arguments passed")) {
-					logger::info("Incorrect number of arguments passed");
 					std::string incorrectArgSizeFormat = "Incorrect number of arguments passed to function %s. Expected %u, got %u instead!. ";
 					std::string functionName = ConvertFunctionToString(*a_function);
 					char incorrectArgString[1072];
 					snprintf(incorrectArgString, 1024, incorrectArgSizeFormat.c_str(), functionName.c_str(), function->GetParamCount(), a_varArray->size());
 					strcpy_s(a_outString, a_bufferSize, incorrectArgString);
 				} else if (findStringIC(a_outString, "Passing NONE to non-object argument")) {
-					logger::info("Passing NONE to non-object argument");
 					char mismatchedArgString[1072];
 					std::string mismatchedFormat = "Function %s received NONE to non-object argument! Received types %s instead!";
 					std::string types = ConvertArgsToTypesAsString(a_varArray);
