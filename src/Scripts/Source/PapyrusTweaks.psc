@@ -22,6 +22,8 @@ Scriptname PapyrusTweaks
 ;Returns current papyrus tweaks version
 int[] Function GetPapyrusTweaksVersion() global native
 
+bool Function IsMainThreadTweakActive() global native
+
 ; Disables Main Thread Tweak for just the current event that calls this function. 
 ; This will only disable the Main Thread Tweak for the calling event, all other scripts will process at fast mode unless they also call this function'
 ; This does nothing if Main Thread Tweak is disabled

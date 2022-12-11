@@ -20,7 +20,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	SKSE::PluginVersionData v;
-	v.PluginVersion(Version::MAJOR);
+	std::array<std::uint16_t,4> versionInfo = { Version::MAJOR, Version::MINOR, Version::PATCH, 0 };
+	v.PluginVersion(REL::Version(versionInfo));
 	v.PluginName(Version::PROJECT);
 	v.AuthorName("Nightfallstorm");
 	v.UsesAddressLibrary(true);

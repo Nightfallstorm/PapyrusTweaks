@@ -9,6 +9,10 @@ namespace Papyrus
 		return { Version::MAJOR, Version::MINOR, Version::PATCH };
 	}
 
+	bool IsMainThreadTweakActive(VM*, StackID, RE::StaticFunctionTag*) {
+		return Settings::GetSingleton()->experimental.runScriptsOnMainThread;
+	}
+
 	bool DisableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*)
 	{
 		ExperimentalHooks::CallableFromTaskletInterceptHook::ExcludeStackFromSpeedUp(stackID);
@@ -32,6 +36,10 @@ namespace Papyrus
 		BIND(GetPapyrusTweaksVersion, true);
 
 		logger::info("Registered GetPapyrusTweaksVersion"sv);
+
+		BIND(IsMainThreadTweakActive);
+
+		logger::info("Registed IsMainThreadTweakActive"sv);
 
 		BIND(DisableFastMode);
 
