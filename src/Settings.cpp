@@ -56,8 +56,10 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 	a_ini.Delete(section, "bSpeedUpGetPlayer", true);
 	a_ini.Delete(section, "bRunScriptsOnMainThread", true);
 
+	// 3.1
+	a_ini.Delete(section, "fMainThreadTaskletBudget", true);
+
 	detail::get_value(a_ini, runScriptsOnMainThread, section, "bRunScriptsOnMainThreadOnly", ";Run scripts on main thread only, and desync most native function calls. This can drastically improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fMainThreadTaskletBudget, as well as the current script load");
-	detail::get_value(a_ini, mainThreadTaskletTime, section, "fMainThreadTaskletBudget", ";(Requires bRunScriptsOnMainThreadOnly=true) How long tasklets are allowed to run each frame in milliseconds. Set to 0 for no budget ");
 	detail::get_value(a_ini, mainThreadClassesToExclude, section, "sMainThreadClassesToExclude", ";(Requires bRunScriptsOnMainThreadOnly=true) List of script classes to exclude from being sped up by bRunScriptsOnMainThreadOnly.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
 	detail::get_value(a_ini, mainThreadMethodPrefixesToExclude, section, "sMainThreadMethodsToExclude", ";(Requires bRunScriptsOnMainThreadOnly=true) List of script method prefixes to exclude from being sped up (ex: \"Equip\" excludes \"EquipItem\" and \"EquipItemByID\", but does NOT exclude \"UnequipItem\".\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
 	detail::get_value(a_ini, disableScriptsInPlayroom, section, "bDisableScriptsInPlayroomVR", ";(VR-ONLY) Pauses all non-playroom scripts while in the VR playroom, so mod scripts only initialize once you actually enter a save/new game.\n;This is only experimental as it intentionally alters script behavior");

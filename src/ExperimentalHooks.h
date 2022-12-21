@@ -8,136 +8,6 @@ namespace ExperimentalHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
-	struct ProcessTaskletsHook
-	{
-		static inline float taskletBudget = 0;
-		// Manual implementation of VM->ProcessExtraTasklets. The original doesn't respect the papyrus budget,
-		// but our implementation will to prevent framerate spikes
-		static void thunk(VM* a_vm, [[maybe_unused]] float a_budget)
-		{
-			if (a_vm->vmTasks.size()) {
-				auto copiedTasks = RE::BSTArray<RE::BSScript::Internal::CodeTasklet*>(a_vm->vmTasks);
-				a_vm->vmTasks.clear();
-				
-				auto initialTime = 1000.0 * GetCounter() / GetFrequency();
-				auto taskletToProcess = copiedTasks.back();
-				while (taskletToProcess) {
-					VMProcess(taskletToProcess);
-					copiedTasks.pop_back();
-					if (copiedTasks.size()) {
-						taskletToProcess = copiedTasks.back();
-					} else {
-						taskletToProcess = nullptr;
-					}
-					
-					if (taskletBudget > 0 && (1000.0 * GetCounter() / GetFrequency()) - initialTime > taskletBudget) {
-						break;
-					}
-				}
-
-				if (copiedTasks.size()) {
-					// push leftovers for the next frame
-					for (auto taskletToPush : copiedTasks) {
-						a_vm->vmTasks.push_back(taskletToPush);
-					}
-				}
-				copiedTasks.clear();
-			}
-		}
-
-		// copied from https://gist.github.com/nkuln/1300858/2b6f3f48131652ddff924bcb02664b669b8df714 
-		static inline LONGLONG GetCounter()
-		{
-			LARGE_INTEGER counter;
-
-			if (!::QueryPerformanceCounter(&counter))
-				return -1;
-
-			return counter.QuadPart;
-		}
-
-		static inline LONGLONG frequency;
-		static inline LONGLONG GetFrequency()
-		{
-			if (frequency != 0) {
-				return frequency;
-			} else {
-				LARGE_INTEGER freq;
-
-				if (!::QueryPerformanceFrequency(&freq))
-					return -1;
-
-				frequency = freq.QuadPart;
-				return frequency;
-			}
-		}
-
-		static inline void VMProcess(RE::BSScript::Internal::CodeTasklet* a_self)
-		{
-			using func_t = decltype(&VMProcess);
-			REL::Relocation<func_t> funct{ RELOCATION_ID(98520, 105176) };
-			return funct(a_self);
-		}
-
-		static inline std::uint32_t idx = 5;
-		static inline REL::Relocation<decltype(thunk)> func;
-
-		// Install our hook at the specified address
-		static inline void Install(float a_budget)
-		{
-			taskletBudget = a_budget;
-			stl::write_vfunc<VM, ProcessTaskletsHook>();
-			logger::info("UpdateTaskletsHook vfunc set!");
-		}
-	};
-
-	struct SkipTasksToJobHook
-	{
-		// Skip VM->TasksToJobs to keep the tasklets inside the VM instead of outsourcing it to the job lists
-		// Normally, VM only processes tasklets when the world is paused, but we will process it manually ourselves in a different hook
-		static std::uint64_t thunk([[maybe_unused]] VM* a_vm, [[maybe_unused]] std::uint64_t a_joblist)
-		{
-			// Skip
-			// TODO Maybe implement the job queue ourselves for multi-threading support?
-			return 0;
-		}
-		static inline std::uint32_t idx = 0x12;
-		static inline REL::Relocation<decltype(thunk)> func;
-
-		// Install our hook at the specified address
-		static inline void Install()
-		{
-			stl::write_vfunc<VM, SkipTasksToJobHook>();
-			logger::info("SkipTasksToJobHook vfunc set!");
-		}
-	};
-
-	struct CallVMUpdatesHook
-	{
-		// Call SkyrimVM::UpdateTasklets here in addition to the normal Processing of updates
-		static void thunk(RE::SkyrimVM* a_vm, float a_budget)
-		{
-			func(a_vm, a_budget);  // SkyrimVM::ProcessRegistedUpdates
-			ProcessTasklets(RE::SkyrimVM::GetSingleton(), 0.0);
-		}
-		static inline REL::Relocation<decltype(thunk)> func;
-
-		static void ProcessTasklets(RE::SkyrimVM* a_vm, float a_budget)
-		{
-			using func_t = decltype(&ProcessTasklets);
-			REL::Relocation<func_t> funct{ RELOCATION_ID(53116, 53927) };
-			return funct(a_vm, a_budget);
-		}
-		// Install our hook at the specified address
-		static inline void Install()
-		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(38118, 39074), REL::VariantOffset(0x1E, 0x1E, 0x32) };
-			stl::write_thunk_call<CallVMUpdatesHook>(target.address());
-			logger::info("CallVMUpdatesHook hooked at address {:x}", target.address());
-			logger::info("CallVMUpdatesHook hooked at offset {:x}", target.offset());
-		}
-	};
-
 	struct CallableFromTaskletInterceptHook
 	{
 		static inline std::vector<RE::BSFixedString> excludedClasses;
@@ -271,6 +141,33 @@ namespace ExperimentalHooks
 		}
 	};
 
+	struct AttemptFunctionCallHook
+	{
+		// Use function queue lock around `AttemptFunctionCall` to prevent concurrent execution of native calls with Main Thread Tweak's speed up
+		// the function queue lock is already used in `ProcessMessageQueue` for calling `AttemptFunctionCall` and `AttemptFunctionReturn`,
+		// so it makes sense to use the same lock here.
+		// This isn't the most sophisticated way to synchronize previously non-sped up native calls as all script functions will sync to the lock,
+		// but it is one of the simplest approaches and shouldn't cause any measurable script performance loss outside of specific synthetic tests
+		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer < RE::BSScript::Internal::CodeTasklet>* a_tasklet, bool a_callingFromTasklets)
+		{
+			a_vm->funcQueueLock.Lock();
+			auto result = func(a_vm, a_stack, a_tasklet, a_callingFromTasklets);  // VirtualMachine::AttemptFunctionCall
+			a_vm->funcQueueLock.Unlock();
+			return result;
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			// Note: AE inlines BSScript::Internal::Codetasklet::HandleCall() into BSScript::Internal::Codetasklet::VMProcess()
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98548, 105176), REL::VariantOffset(0x56, 0x82F, 0x56) };
+			stl::write_thunk_call<AttemptFunctionCallHook>(target.address());
+			logger::info("AttemptFunctionCallHook hooked at address {:x}", target.address());
+			logger::info("AttemptFunctionCallHook hooked at offset {:x}", target.offset());
+		}
+	};
+
 	// TODO: Expand messagebox message?
 	struct BypassCorruptSaveHook
 	{
@@ -326,13 +223,8 @@ namespace ExperimentalHooks
 		auto settings = Settings::GetSingleton();
 
 		if (settings->experimental.runScriptsOnMainThread) {
-			if (settings->experimental.mainThreadTaskletTime < 0) {
-				settings->experimental.mainThreadTaskletTime = 0;
-			}
-			ProcessTaskletsHook::Install(settings->experimental.mainThreadTaskletTime);
-			SkipTasksToJobHook::Install();
-			CallVMUpdatesHook::Install();
 			CallableFromTaskletInterceptHook::Install();
+			AttemptFunctionCallHook::Install();
 		}
 		if (settings->experimental.bypassCorruptedSave) {
 			BypassCorruptSaveHook::Install();
