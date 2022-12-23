@@ -32,11 +32,11 @@ public:
 	{
 		void Load(CSimpleIniA& a_ini);
 
-		bool runScriptsOnMainThread{ false };
+		bool speedUpNativeCalls{ false };
 
-		std::string mainThreadClassesToExclude{ "UI, ConsoleUtil, PO3_SKSEFunctions, MfgConsole, MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
+		std::string classesToExcludeFromSpeedUp{ "UI, ConsoleUtil, PO3_SKSEFunctions, MfgConsole, MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
 
-		std::string mainThreadMethodPrefixesToExclude{
+		std::string methodPrefixesToExcludeFromSpeedup{
 			/* Default blocks all vanilla functions that aren't read-only */
 			"Activate, Add, AdvanceSkill, Allow, Apply, Block, Cast, Change, Clear, Complete, Create, Delete, Disable, Disallow, Dispel, DoCombatSpellApply, Enable, Equip, EvaluatePackage, Fade, Force, GetAnimation, GetQuest, Mod, Move, Open, Place, Play, Register, RemoteCast, Remove, RequestSave, Reset, Send, Set, Show, Start, Stop, TempClone, Translate, Try, Update, Unregister"
 		};

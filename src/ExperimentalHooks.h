@@ -56,10 +56,10 @@ namespace ExperimentalHooks
 
 		static void InitBlacklist()
 		{
-			if (Settings::GetSingleton()->experimental.mainThreadClassesToExclude != "") {
-				auto mainThreadClasses = Settings::GetSingleton()->experimental.mainThreadClassesToExclude;
-				mainThreadClasses.erase(remove(mainThreadClasses.begin(), mainThreadClasses.end(), ' '), mainThreadClasses.end());  // Trim whitespace
-				std::stringstream class_stream(mainThreadClasses);                                                                  //create string stream from the string
+			if (Settings::GetSingleton()->experimental.classesToExcludeFromSpeedUp != "") {
+				auto classes = Settings::GetSingleton()->experimental.classesToExcludeFromSpeedUp;
+				classes.erase(remove(classes.begin(), classes.end(), ' '), classes.end());  // Trim whitespace
+				std::stringstream class_stream(classes);                                    // create string stream from the string
 				while (class_stream.good()) {
 					std::string substr;
 					getline(class_stream, substr, ',');  //get first string delimited by comma
@@ -68,13 +68,13 @@ namespace ExperimentalHooks
 				}
 			}
 
-			if (Settings::GetSingleton()->experimental.mainThreadMethodPrefixesToExclude != "") {
-				auto mainThreadMethods = Settings::GetSingleton()->experimental.mainThreadMethodPrefixesToExclude;
-				mainThreadMethods.erase(remove(mainThreadMethods.begin(), mainThreadMethods.end(), ' '), mainThreadMethods.end());  // Trim whitespace
-				std::stringstream method_stream(mainThreadMethods);                                                                 //create string stream from the string
+			if (Settings::GetSingleton()->experimental.methodPrefixesToExcludeFromSpeedup != "") {
+				auto methodPrefixes = Settings::GetSingleton()->experimental.methodPrefixesToExcludeFromSpeedup;
+				methodPrefixes.erase(remove(methodPrefixes.begin(), methodPrefixes.end(), ' '), methodPrefixes.end());  // Trim whitespace
+				std::stringstream method_stream(methodPrefixes);                                                        // create string stream from the string
 				while (method_stream.good()) {
 					std::string substr;
-					getline(method_stream, substr, ',');  //get first string delimited by comma
+					getline(method_stream, substr, ',');  // get first string delimited by comma
 					excludedMethodPrefixes.push_back(substr);
 					logger::info("Excluding method prefix: {}", substr);
 				}
@@ -88,7 +88,8 @@ namespace ExperimentalHooks
 			excludedStacksLock.unlock();
 		}
 
-		static void UnexcludeStackFromSpeedup(RE::VMStackID a_id) {
+		static void UnexcludeStackFromSpeedup(RE::VMStackID a_id)
+		{
 			excludedStacksLock.lock();
 			if (excludedStacks.find(a_id) != excludedStacks.end()) {
 				excludedStacks.erase(a_id);
@@ -104,7 +105,9 @@ namespace ExperimentalHooks
 				Xbyak::Label funcLabel;
 				mov(rdx, r14b);  // move a_callableFromTasklets into place, a_function is already in place
 				mov(r8, rbx);    // move a_stack into place
-				call(ptr[rip + funcLabel]);
+
+				// Note: We don't need to add/substract from the OS stack because we are overwriting a different call function (function->canBeCalledFromTasklets())
+				call(ptr[rip + funcLabel]); // callableFromTaskletCheckIntercept(...)
 				test(al, al);
 				jz("CheckFails");
 				L("CheckPasses");
@@ -143,12 +146,12 @@ namespace ExperimentalHooks
 
 	struct AttemptFunctionCallHook
 	{
-		// Use function queue lock around `AttemptFunctionCall` to prevent concurrent execution of native calls with Main Thread Tweak's speed up
-		// the function queue lock is already used in `ProcessMessageQueue` for calling `AttemptFunctionCall` and `AttemptFunctionReturn`,
+		// Use function queue lock around `AttemptFunctionCall` when called from tasklets to prevent concurrent execution of native calls now that they are sped up.
+		// The function queue lock is already used in `ProcessMessageQueue` for calling `AttemptFunctionCall` and `AttemptFunctionReturn`,
 		// so it makes sense to use the same lock here.
 		// This isn't the most sophisticated way to synchronize previously non-sped up native calls as all script functions will sync to the lock,
 		// but it is one of the simplest approaches and shouldn't cause any measurable script performance loss outside of specific synthetic tests
-		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer < RE::BSScript::Internal::CodeTasklet>* a_tasklet, bool a_callingFromTasklets)
+		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::CodeTasklet>* a_tasklet, bool a_callingFromTasklets)
 		{
 			a_vm->funcQueueLock.Lock();
 			auto result = func(a_vm, a_stack, a_tasklet, a_callingFromTasklets);  // VirtualMachine::AttemptFunctionCall
@@ -161,6 +164,8 @@ namespace ExperimentalHooks
 		static inline void Install()
 		{
 			// Note: AE inlines BSScript::Internal::Codetasklet::HandleCall() into BSScript::Internal::Codetasklet::VMProcess()
+			// despite having the original now unused function at ID 105204
+			// So the AE address/offset is quite different from SE/VR
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98548, 105176), REL::VariantOffset(0x56, 0x82F, 0x56) };
 			stl::write_thunk_call<AttemptFunctionCallHook>(target.address());
 			logger::info("AttemptFunctionCallHook hooked at address {:x}", target.address());
@@ -194,6 +199,7 @@ namespace ExperimentalHooks
 	};
 
 	// Keep `IgnoreMemoryLimit` flag to 1 regardless of VM overstressed status
+	// In other words, if VM is NOT overstressed, change the pseudocode `ADJ(skyrimVM)->memoryPagePolicy.ignoreMemoryLimit = 0;` to `ADJ(skyrimVM)->memoryPagePolicy.ignoreMemoryLimit = 1;`
 	struct KeepIgnoreMemoryLimitFlag
 	{
 		// Install our hook at the specified address
@@ -203,15 +209,18 @@ namespace ExperimentalHooks
 
 			REL::safe_fill(target.address(), REL::NOP, 0x7);
 			if (REL::Module::IsAE()) {
+				// AE
 				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x86, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rsi+0x94],0x1
 				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
 			} else if (REL::Module::IsSE()) {
+				// SE
 				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x94, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rcx+0x94],0x1
 				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
 			} else {
+				// VR
 				std::byte setMemoryLimitCode[] = { (std::byte)0xc6, (std::byte)0x81, (std::byte)0x9C, (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)1 };  // mov    BYTE PTR [rcx+0x9C],0x1
 				REL::safe_write(target.address(), setMemoryLimitCode, 0x7);
-			}			
+			}
 
 			logger::info("Hooked KeepIgnoreMemoryLimitFlag at address {:x}", target.address());
 			logger::info("Hooked KeepIgnoreMemoryLimitFlag at offset {:x}", target.offset());
@@ -222,7 +231,7 @@ namespace ExperimentalHooks
 	{
 		auto settings = Settings::GetSingleton();
 
-		if (settings->experimental.runScriptsOnMainThread) {
+		if (settings->experimental.speedUpNativeCalls) {
 			CallableFromTaskletInterceptHook::Install();
 			AttemptFunctionCallHook::Install();
 		}

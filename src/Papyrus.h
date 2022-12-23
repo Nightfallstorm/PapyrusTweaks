@@ -10,7 +10,7 @@ namespace Papyrus
 
 	std::vector<std::int32_t> GetPapyrusTweaksVersion(RE::StaticFunctionTag*);
 
-	bool IsMainThreadTweakActive(VM*, StackID, RE::StaticFunctionTag*);
+	bool IsNativeCallSpeedUpActive(VM*, StackID, RE::StaticFunctionTag*);
 
 	bool DisableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*);
 
