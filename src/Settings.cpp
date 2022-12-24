@@ -59,19 +59,20 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 	// 3.1
 	a_ini.Delete(section, "fMainThreadTaskletBudget", true);
 
-	detail::get_value(a_ini, speedUpNativeCalls, section, "bSpeedUpNativeCalls", ";(Formerly bRunScriptsOnMainThreadOnly)\n;Speeds up native calls by desyncing them from framerate and instead syncing script calls to a spinlock, greatly improving script performance while still preventing concurrent execution of native calls");
-	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sScriptClassesToExclude", ";(Formerly sMainThreadClassesToExclude, requires bSpeedUpNativeCalls=true)\n;List of script classes to exclude from being sped up by bSpeedUpNativeCalls.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
-	detail::get_value(a_ini, methodPrefixesToExcludeFromSpeedup, section, "sScriptMethodsToExclude", ";(Formerly sMainThreadMethodsToExclude, requires bSpeedUpNativeCalls=true)\n;List of script method prefixes to exclude from being sped up (ex: \"Equip\" excludes \"EquipItem\" and \"EquipItemByID\", but does NOT exclude \"UnequipItem\".\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing\n;as a lot of modifying functions like `EquipItem` do not work properly if executed more than once in a single frame.\n; Defaults exclude everything except for read-only functions (ex: GetFormFromFile, HasKeyword, IsLoaded, etc.)");
-	// Get deprecated values last in case user is updating from 3.1 or below
-	detail::get_value(a_ini, speedUpNativeCalls, section, "bRunScriptsOnMainThreadOnly", ";Deprecated, now renamed to bSpeedUpNativeCalls");
-	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sMainThreadClassesToExclude", ";Deprecated, now renamed to sScriptClassesToExclude");
-	detail::get_value(a_ini, methodPrefixesToExcludeFromSpeedup, section, "sMainThreadMethodsToExclude", ";Deprecated, now renamed to sScriptMethodsToExclude");
+
+	// Get deprecated values first in case user is updating from 3.1 or below
+	detail::get_value(a_ini, speedUpNativeCalls, section, "bRunScriptsOnMainThreadOnly", ";Run scripts on main thread only, and desync most native function calls. This can drastically improve script performance, at a minor cost of framerate during heavy load.\n;The amount of performance and framerate cost is based on fMainThreadTaskletBudget, as well as the current script load");
+	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sMainThreadClassesToExclude", ";(Requires bRunScriptsOnMainThreadOnly=true) List of script classes to exclude from being sped up by bRunScriptsOnMainThreadOnly.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
+	detail::get_value(a_ini, methodPrefixesToExcludeFromSpeedup, section, "sMainThreadMethodsToExclude", ";(Requires bRunScriptsOnMainThreadOnly=true) List of script method prefixes to exclude from being sped up (ex: \"Equip\" excludes \"EquipItem\" and \"EquipItemByID\", but does NOT exclude \"UnequipItem\".\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
 
 	// 3.2
 	a_ini.Delete(section, "bRunScriptsOnMainThreadOnly", true);
 	a_ini.Delete(section, "sMainThreadClassesToExclude", true);
 	a_ini.Delete(section, "sMainThreadMethodsToExclude", true);
 
+    detail::get_value(a_ini, speedUpNativeCalls, section, "bSpeedUpNativeCalls", ";(Formerly bRunScriptsOnMainThreadOnly)\n;Speeds up native calls by desyncing them from framerate and instead syncing script calls to a spinlock, greatly improving script performance while still preventing concurrent execution of native calls");
+	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sScriptClassesToExclude", ";(Formerly sMainThreadClassesToExclude, requires bSpeedUpNativeCalls=true)\n;List of script classes to exclude from being sped up by bSpeedUpNativeCalls.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
+	detail::get_value(a_ini, methodPrefixesToExcludeFromSpeedup, section, "sScriptMethodsToExclude", ";(Formerly sMainThreadMethodsToExclude, requires bSpeedUpNativeCalls=true)\n;List of script method prefixes to exclude from being sped up (ex: \"Equip\" excludes \"EquipItem\" and \"EquipItemByID\", but does NOT exclude \"UnequipItem\".\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing\n;as a lot of modifying functions like `EquipItem` do not work properly if executed more than once in a single frame.\n; Defaults exclude everything except for read-only functions (ex: GetFormFromFile, HasKeyword, IsLoaded, etc.)");
 
 	detail::get_value(a_ini, disableScriptsInPlayroom, section, "bDisableScriptsInPlayroomVR", ";(VR-ONLY) Pauses all non-playroom scripts while in the VR playroom, so mod scripts only initialize once you actually enter a save/new game.\n;This is only experimental as it intentionally alters script behavior");
 	detail::get_value(a_ini, bypassCorruptedSave, section, "bBypassCorruptSaveMessage", ";Stops the game from resetting when loading a corrupted save\n;This will NOT fix a broken save, just allows you to load the save no matter what information is lost. ONLY USE AS A LAST RESORT TO RECOVER A SAVE YOU HAVE BEEN WARNED!!");
