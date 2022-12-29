@@ -46,6 +46,7 @@ void Settings::Tweaks::Load(CSimpleIniA& a_ini)
 	detail::get_value(a_ini, disableNoPropertyOnScript, section, "bDisableNoPropertyOnScriptErrorLogs", ";Disable \"Property %s on script %s attached to %s cannot be initialized because the script no longer contains that property\" log messages.\n;This only disables the logging of the warning, the warning itself will still occur");
 	detail::get_value(a_ini, disableMissingScriptError, section, "bDisableMissingScriptError", ";Disable \"Cannot open store for class \"%s\", missing file?\" errors being logged.\n;This only disables the logging of the error, the error itself will still occur");
 	detail::get_value(a_ini, stackDumpTimeoutThreshold, section, "iStackDumpTimeoutMS", ";Modify how long Papyrus can be \"overstressed\" before dumping stacks, in milliseconds (Default value: 15000, Vanilla value: 5000).\n;Set to 0 to disable the stack dump check, or -1 to disable this setting.\n;See https://www.nexusmods.com/skyrimspecialedition/articles/4625 for information on what a stack dump is");
+	detail::get_value(a_ini, summarizeStackDumps, section, "bSummarizeStackDumps", ";Adds a summary of events when dumping stacks to log");
 }
 
 void Settings::Experimental::Load(CSimpleIniA& a_ini)

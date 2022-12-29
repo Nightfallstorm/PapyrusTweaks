@@ -25,6 +25,7 @@ public:
 		bool improveValidateArgsErrors{ true };
 		bool disableNoPropertyOnScript{ false };
 		bool disableMissingScriptError{ false };
+		bool summarizeStackDumps{ true };
 		int stackDumpTimeoutThreshold{ 15000 };
 	} tweaks;
 

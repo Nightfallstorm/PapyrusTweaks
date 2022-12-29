@@ -185,6 +185,17 @@ namespace Util
 			}
 		}
 
+		// https://stackoverflow.com/questions/5056645/sorting-stdmap-using-value
+		template <typename A, typename B>
+		std::multimap<B, A> flip_map(std::map<A, B>& src)
+		{
+			std::multimap<B, A> dst;
+
+			for (typename std::map<A, B>::const_iterator it = src.begin(); it != src.end(); ++it)
+				dst.insert(std::pair<B, A>(it->second, it->first));
+
+			return dst;
+		}
 		template <typename First, typename... T>
 		[[nodiscard]] bool is_in(First&& first, T&&... t)
 		{
