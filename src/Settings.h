@@ -40,7 +40,7 @@ public:
 		std::string methodPrefixesToExcludeFromSpeedup{
 			/* Default blocks all vanilla functions that aren't read-only */
 			// TODO: Migrate users to include missing functions
-			"Activate, Add, AdvanceSkill, Allow, Apply, Block, Cast, Change, Clear, Complete, Create, Delete, Disable, Disallow, Dispel, DoCombatSpellApply, Enable, Equip, EvaluatePackage, Fade, Force, GetAnimation, GetQuest, Mod, Move, Open, Place, Play, Push, Pop, Queue, Register, RemoteCast, Remove, RequestSave, Reset, Send, Set, Show, Start, Stop, TempClone, Translate, Try, Update, Unregister"
+			"Activate, Add, Advance, Allow, Attach, Apply, Block, Cast, Change, Clear, Close, Complete, Create, Damage, Delete, Disable, Disallow, Dismount, Dispel, DoCombatSpellApply, Draw, Drop, Enable, End, Equip, Evaluate, Fade, Fail, Fire, Force, GetAnimation, GetQuest, Hide, Hold, Ignore, Increment, Keep, Kill, Knock, Learn, Load, Lock, Mod, Move, Mute, Open, Place, Play, Pop, Precache, Process, Push, Queue, Quit, Regenerate, Register, Release, RemoteCast, Remove, Request, Reset, Restore, Resurrect, Revert, Save, Say, Send, Serve, Set, Shake, Sheath, Show, Start, Stop, Teach, TempClone, Tether, Toggle, Translate, Trap, Trigger, Try, Unequip, Unlock, UnMute, UnPause, Update, Unregister"
 		};
 
 		bool bypassMemoryLimit{ false };
