@@ -90,6 +90,14 @@ namespace Util
 					});
 			}
 
+			inline bool istartsWith(std::string_view a_string, std::string_view a_subString)
+			{
+				if (a_subString.length() > a_string.length()) {
+					return false;
+				}
+				return iequals(a_string.substr(0, a_subString.length()), a_subString);
+			}
+
 			inline std::string join(const std::vector<std::string>& a_vec, const char* a_delimiter)
 			{
 				std::ostringstream os;

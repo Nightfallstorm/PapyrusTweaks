@@ -1,6 +1,7 @@
 #pragma once
 #include "Settings.h"
 #include <xbyak/xbyak.h>
+#include "Util.h"
 
 namespace VRHooks
 {
@@ -55,30 +56,20 @@ namespace VRHooks
 				RE::BSScrapArray<RE::BSScript::Variable> ignore3;
 				RE::BSFixedString ignore1;
 				a_funcCallQuery->get()->GetFunctionCallInfo(ignore, scriptInfo, ignore1, ignore2, ignore3);
-				if (scriptInfo && scriptInfo.get() && findStringIC(scriptInfo.get()->GetName(), "vrplayroom")) {
+				if (scriptInfo && scriptInfo.get() && string::icontains(scriptInfo.get()->GetName(), "vrplayroom")) {
 					return true;  // function query is for VRPlayroom stuff, but a stackframe may not have been created yet, let it through
 				}
 				return false;
 			}
 			while (stackFrame != nullptr) {  // Loop through all frames in the stack
 				if (stackFrame->owningFunction && stackFrame->owningFunction.get()) {
-					if (findStringIC(std::string(stackFrame->owningFunction.get()->GetObjectTypeName().c_str()), "vrplayroom")) {
+					if (string::icontains(std::string(stackFrame->owningFunction.get()->GetObjectTypeName().c_str()), "vrplayroom")) {
 						return true;
 					}
 				}
 				stackFrame = stackFrame->previousFrame;
 			}
 			return false;
-		}
-
-		// copied from stackoverflow. Just checks if string contained in other string no case sensitivity
-		static bool findStringIC(const std::string& strHaystack, const std::string& strNeedle)
-		{
-			auto it = std::search(
-				strHaystack.begin(), strHaystack.end(),
-				strNeedle.begin(), strNeedle.end(),
-				[](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); });
-			return (it != strHaystack.end());
 		}
 
 		struct StackCheck : Xbyak::CodeGenerator

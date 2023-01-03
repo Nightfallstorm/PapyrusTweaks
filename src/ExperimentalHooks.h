@@ -2,6 +2,7 @@
 #include "Settings.h"
 #include <string>
 #include <xbyak/xbyak.h>
+#include "Util.h"
 
 namespace ExperimentalHooks
 {
@@ -10,8 +11,8 @@ namespace ExperimentalHooks
 
 	struct CallableFromTaskletInterceptHook
 	{
-		static inline std::vector<RE::BSFixedString> excludedClasses;
-		static inline std::vector<RE::BSFixedString> excludedMethodPrefixes;
+		static inline std::vector<std::string> excludedClasses;
+		static inline std::vector<std::string> excludedMethodPrefixes;
 		static inline std::set<RE::VMStackID> excludedStacks;
 		static inline std::mutex excludedStacksLock;
 		// Intercept VMProcess's check if a function is callable from taskelts (can be called without syncing to framerate)
@@ -39,18 +40,21 @@ namespace ExperimentalHooks
 			}
 			excludedStacksLock.unlock();
 
-			for (auto className : excludedClasses) {
-				if (a_function->GetObjectTypeName() == className) {
+			for (auto excludedClass : excludedClasses) {
+				if (string::iequals(a_function->GetObjectTypeName(), excludedClass)) {
 					return false;
 				}
 			}
 
 			for (auto methodPrefix : excludedMethodPrefixes) {
-				if (std::string_view(a_function->GetName()).starts_with(methodPrefix)) {
+				if (string::istartsWith(a_function->GetName(), methodPrefix)) {
 					return false;
 				}
 			}
-			//logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->GetName());
+			#ifdef _DEBUG
+logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->GetName());
+			#endif
+			
 			return true;
 		}
 
@@ -59,6 +63,7 @@ namespace ExperimentalHooks
 			if (Settings::GetSingleton()->experimental.classesToExcludeFromSpeedUp != "") {
 				auto classes = Settings::GetSingleton()->experimental.classesToExcludeFromSpeedUp;
 				classes.erase(remove(classes.begin(), classes.end(), ' '), classes.end());  // Trim whitespace
+				classes.erase(remove(classes.begin(), classes.end(), '	'), classes.end());  // Trim tabs
 				std::stringstream class_stream(classes);                                    // create string stream from the string
 				while (class_stream.good()) {
 					std::string substr;
@@ -71,6 +76,7 @@ namespace ExperimentalHooks
 			if (Settings::GetSingleton()->experimental.methodPrefixesToExcludeFromSpeedup != "") {
 				auto methodPrefixes = Settings::GetSingleton()->experimental.methodPrefixesToExcludeFromSpeedup;
 				methodPrefixes.erase(remove(methodPrefixes.begin(), methodPrefixes.end(), ' '), methodPrefixes.end());  // Trim whitespace
+				methodPrefixes.erase(remove(methodPrefixes.begin(), methodPrefixes.end(), '	'), methodPrefixes.end());  // Trim tabs
 				std::stringstream method_stream(methodPrefixes);                                                        // create string stream from the string
 				while (method_stream.good()) {
 					std::string substr;
