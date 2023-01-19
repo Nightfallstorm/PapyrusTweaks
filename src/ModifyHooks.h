@@ -209,6 +209,44 @@ namespace ModifyHooks
 		}
 	};
 
+	struct FixIsHostileToActorCrash
+	{
+		// Easiest hook here is to replace the original IsHostileToActor callback with our own
+		static std::uint64_t thunk(std::uint64_t unk, char* functionName, char* className, std::uintptr_t callback, VM** a_vm)
+		{
+			IsHostileToActor = callback; // Store the original so we can invoke it later
+			return func(unk, functionName, className, reinterpret_cast<std::uintptr_t>(IsHostileToActorEx), a_vm);
+		};
+
+	    // Actor.IsHostileToActor(Actor akActor) crashes when akActor is NONE.
+		// We will instead log an error and return false back, fixing the crash
+		static bool IsHostileToActorEx(VM* a_vm, RE::VMStackID a_stackID, RE::Actor* a_self, RE::Actor* a_other) {
+			if (!a_other) {
+				a_vm->TraceStack(
+					"Actor argument is NONE for Actor.IsHostileToActor()! Mod authors: This normally crashes the game in vanilla, but is fixed by Papyrus Tweaks NG",
+					a_stackID,
+					RE::BSScript::ErrorLogger::Severity::kError
+				);
+				return false;
+			} else {
+				return IsHostileToActor(a_vm, a_stackID, a_self, a_other);
+			}
+		}
+
+		static inline REL::Relocation<decltype(IsHostileToActorEx)> IsHostileToActor;  // Original IsHostileToActor
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53960, 54784), REL::VariantOffset(0x2CA6, 0x2FDB, 0x2BA4) };
+			stl::write_thunk_call<FixIsHostileToActorCrash>(target.address());
+
+			logger::info("FixIsHostileToActorCrash hooked at address {:x}", target.address());
+			logger::info("FixIsHostileToActorCrash hooked at offset {:x}", target.offset());
+		}
+	};
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
@@ -222,8 +260,12 @@ namespace ModifyHooks
 		if (settings->fixes.fixScriptPageAllocation) {
 			FixScriptPageAllocation::Install();
 		}
+		if (settings->fixes.fixIsHostileToActorCrash) {
+			FixIsHostileToActorCrash::Install();
+		}
 		if (settings->tweaks.stackDumpTimeoutThreshold > 0) {
 			StackDumpTimeoutHook::Install();
 		}
+
 	}
 }

@@ -13,6 +13,7 @@ public:
 
 		bool fixToggleScriptSave{ true };
 		bool fixScriptPageAllocation{ true };
+		bool fixIsHostileToActorCrash{ true };
 	} fixes;
 
 	struct Tweaks
