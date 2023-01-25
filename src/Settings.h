@@ -29,6 +29,8 @@ public:
 		bool disableMissingScriptError{ false };
 		bool summarizeStackDumps{ true };
 		int stackDumpTimeoutThreshold{ 15000 };
+		bool enableDocStrings{ true };
+		bool enableDebugInfo{ true };
 	} tweaks;
 
 	struct Experimental

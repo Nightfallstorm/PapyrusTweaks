@@ -49,6 +49,8 @@ void Settings::Tweaks::Load(CSimpleIniA& a_ini)
 	detail::get_value(a_ini, disableMissingScriptError, section, "bDisableMissingScriptError", ";Disable \"Cannot open store for class \"%s\", missing file?\" errors being logged.\n;This only disables the logging of the error, the error itself will still occur");
 	detail::get_value(a_ini, stackDumpTimeoutThreshold, section, "iStackDumpTimeoutMS", ";Modify how long Papyrus can be \"overstressed\" before dumping stacks, in milliseconds (Default value: 15000, Vanilla value: 5000).\n;Set to 0 to disable the stack dump check, or -1 to disable this setting.\n;See https://www.nexusmods.com/skyrimspecialedition/articles/4625 for information on what a stack dump is");
 	detail::get_value(a_ini, summarizeStackDumps, section, "bSummarizeStackDumps", ";Adds a summary of events when dumping stacks to log");
+	detail::get_value(a_ini, enableDocStrings, section, "bEnableDocStrings", ";Enables loading of doc strings from scripts into the engine. Requires `bLoadDebugInformation` to be true in this INI");
+	detail::get_value(a_ini, enableDebugInfo, section, "bEnableDebugInformation", ";Enables Skyrim to load debug information of scripts, and print papyrus logs. This completely overrides bLoadDebugInformation in Skyrim.ini and is provided here for easier configuration");
 }
 
 void Settings::Experimental::Load(CSimpleIniA& a_ini)

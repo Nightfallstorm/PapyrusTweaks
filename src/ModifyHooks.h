@@ -332,6 +332,48 @@ namespace ModifyHooks
 
 	};
 
+	struct EnableLoadDocStrings
+	{
+		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable doc string loading
+		// This plays well with the load debug information hook
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::BSScript::ErrorLogger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		{
+			return thunk(a_unmadeSelf, a_logger, a_loadDebugInformation, true);
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53108, 53919), REL::VariantOffset(0x604, 0x664, 0x604) };
+			stl::write_thunk_call<EnableLoadDocStrings>(target.address());
+			logger::info("EnableLoadDocStrings hooked at address {:x}", target.address());
+			logger::info("EnableLoadDocStrings hooked at offset {:x}", target.offset());
+		}
+	};
+
+	struct EnableLoadDebugInformation
+	{
+		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable debug information loading
+		// This thunk hook plays well with the doc string hook
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::BSScript::ErrorLogger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		{
+			return thunk(a_unmadeSelf, a_logger, true, a_loadDocStrings);
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53108, 53919), REL::VariantOffset(0x604, 0x664, 0x604) };
+			stl::write_thunk_call<EnableLoadDebugInformation>(target.address());
+			logger::info("EnableLoadDebugInformation hooked at address {:x}", target.address());
+			logger::info("EnableLoadDebugInformation hooked at offset {:x}", target.offset());
+		}
+	};
+
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
@@ -355,5 +397,11 @@ namespace ModifyHooks
 			FixDelayedTypeCast::Install();
 			FixDelayedTypeCastVFunc::Install();
 		}	
+		if (settings->tweaks.enableDocStrings) {
+			EnableLoadDocStrings::Install();
+		}
+		if (settings->tweaks.enableDebugInfo) {
+			EnableLoadDebugInformation::Install();
+		}
 	}
 }
