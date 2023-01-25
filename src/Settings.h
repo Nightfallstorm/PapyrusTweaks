@@ -14,6 +14,7 @@ public:
 		bool fixToggleScriptSave{ true };
 		bool fixScriptPageAllocation{ true };
 		bool fixIsHostileToActorCrash{ true };
+		bool fixDelayedScriptBreakage{ true };
 	} fixes;
 
 	struct Tweaks

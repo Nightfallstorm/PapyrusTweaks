@@ -2,6 +2,33 @@
 #include "Settings.h"
 #include <xbyak/xbyak.h>
 
+// TEMPORARY UNTIL CLIB-NG UPDATES
+namespace RE::BSScript::UnlinkedTypes
+{
+	class ConvertTypeFunctor
+	{
+	public:
+		inline static constexpr auto RTTI = RTTI_BSScript__UnlinkedTypes__Function__ConvertTypeFunctor;
+		inline static constexpr auto VTABLE = VTABLE_BSScript__UnlinkedTypes__Function__ConvertTypeFunctor;
+
+		virtual ~ConvertTypeFunctor();  // 00
+
+		virtual bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) = 0;  // 01
+	};
+	static_assert(sizeof(ConvertTypeFunctor) == 0x8);
+
+	class LinkerConvertTypeFunctor : public ConvertTypeFunctor
+	{
+	public:
+		~LinkerConvertTypeFunctor() override;  // 00
+
+		bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) override;  // 01
+		// members
+		LinkerProcessor* linker;  // 08
+	};
+	static_assert(sizeof(LinkerConvertTypeFunctor) == 0x10);
+}
+
 namespace ModifyHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
@@ -247,6 +274,64 @@ namespace ModifyHooks
 			logger::info("FixIsHostileToActorCrash hooked at offset {:x}", target.offset());
 		}
 	};
+
+	struct FixDelayedTypeCast
+	{
+		auto static inline noneTypeString = RE::BSFixedString("NONE");
+		// Note: This fix assumes that scripts are ALWAYS compiled properly (aka nothing is malformed), meaning the original function only fails
+		// if the type doesn't exist (ex: Variable casted to SuperSecretClass, but SuperSecretClass doesn't exist)
+
+		// BSScript::LinkerProcessor::ConvertVariableType
+		static bool thunk(RE::BSScript::LinkerProcessor* self, RE::BSFixedString* a_name, RE::BSScript::TypeInfo& a_typeOut)
+		{
+			if (!func(self, a_name, a_typeOut)) { // If original call fails due to type not being present
+				return func(self, &noneTypeString, a_typeOut); // Call it again, but to return a NONE type, as the script engine will treat it as such when running the script anyway
+			}
+			return true;
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98721, 105384), REL::VariantOffset(0x2C8, 0x30D, 0x160) };
+			stl::write_thunk_call<FixDelayedTypeCast>(target.address());
+			logger::info("FixDelayedTypeCast hooked at address {:x}", target.address());
+			logger::info("FixDelayedTypeCast hooked at offset {:x}", target.offset());
+			
+			REL::Relocation<std::uintptr_t> target1{ RELOCATION_ID(98722, 105385), REL::VariantOffset(0x160, 0x1C7, 0x160) };
+			stl::write_thunk_call<FixDelayedTypeCast>(target1.address());
+			logger::info("FixDelayedTypeCast hooked at address {:x}", target1.address());
+			logger::info("FixDelayedTypeCast hooked at offset {:x}", target1.offset());
+		}
+	};
+
+	struct FixDelayedTypeCastVFunc
+	{
+		auto static inline noneTypeString = RE::BSFixedString("NONE");
+		// See FixDelayedTypeCast for details, this is just the hook for the special vfunc version that jumps to the original
+		static bool thunk(RE::BSScript::UnlinkedTypes::LinkerConvertTypeFunctor* self, RE::BSFixedString* a_name, RE::BSScript::TypeInfo& a_typeOut)
+		{
+			if (!func(self, a_name, a_typeOut)) {
+				return func(self, &noneTypeString, a_typeOut);
+			}
+			return true;
+		}
+
+		static inline std::uint32_t idx = 1;
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			stl::write_vfunc<RE::BSScript::UnlinkedTypes::LinkerConvertTypeFunctor, FixDelayedTypeCastVFunc>();
+			logger::info("FixDelayedTypeCastVFunc hook set!");
+		}
+
+	};
+
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
@@ -266,6 +351,9 @@ namespace ModifyHooks
 		if (settings->tweaks.stackDumpTimeoutThreshold > 0) {
 			StackDumpTimeoutHook::Install();
 		}
-
+		if (settings->fixes.fixDelayedScriptBreakage) {
+			FixDelayedTypeCast::Install();
+			FixDelayedTypeCastVFunc::Install();
+		}	
 	}
 }
