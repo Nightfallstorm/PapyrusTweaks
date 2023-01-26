@@ -317,22 +317,22 @@ namespace LoggerHooks
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
-		if (settings->tweaks.improveValidateArgsErrors) {
+		if (settings->loggertweaks.improveValidateArgsErrors) {
 			ValidationSignaturesHook::Install();
 		}
-		if (settings->tweaks.disableGetFormFromFile) {
+		if (settings->loggertweaks.disableGetFormFromFile) {
 			GetFormFromFileHook::Install();
 		}
-		if (settings->tweaks.improveBaseTypeMismatch) {
+		if (settings->loggertweaks.improveBaseTypeMismatch) {
 			BaseTypeMismatch::Install();
 		}
-		if (settings->tweaks.disableNoPropertyOnScript) {
+		if (settings->loggertweaks.disableNoPropertyOnScript) {
 			NoPropertyOnScriptHook::Install();
 		}
-		if (settings->tweaks.disableMissingScriptError) {
+		if (settings->loggertweaks.disableMissingScriptError) {
 			DisableMissingScriptError::Install();
 		}
-		if (settings->tweaks.summarizeStackDumps) {
+		if (settings->loggertweaks.summarizeStackDumps) {
 			SummarizeStackDumpHook::Install();
 		}
 	}

@@ -6,6 +6,7 @@ public:
 	[[nodiscard]] static Settings* GetSingleton();
 
 	void Load();
+	void MigrateDeprecatedTweaks(CSimpleIniA& a_ini);
 
 	struct Fixes
 	{
@@ -17,21 +18,27 @@ public:
 		bool fixDelayedScriptBreakage{ true };
 	} fixes;
 
-	struct Tweaks
+	struct VMTweaks
 	{
 		void Load(CSimpleIniA& a_ini);
 
 		std::uint32_t maxOpsPerFrame{ 500 };
+		int stackDumpTimeoutThreshold{ 15000 };
+		bool enableDocStrings{ true };
+		bool enableDebugInfo{ true };
+	} VMtweaks;
+
+	struct LoggerTweaks
+	{
+		void Load(CSimpleIniA& a_ini);
+
 		bool disableGetFormFromFile{ false };
 		bool improveBaseTypeMismatch{ true };
 		bool improveValidateArgsErrors{ true };
 		bool disableNoPropertyOnScript{ false };
 		bool disableMissingScriptError{ false };
 		bool summarizeStackDumps{ true };
-		int stackDumpTimeoutThreshold{ 15000 };
-		bool enableDocStrings{ true };
-		bool enableDebugInfo{ true };
-	} tweaks;
+	} loggertweaks;
 
 	struct Experimental
 	{

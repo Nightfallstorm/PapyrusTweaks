@@ -42,7 +42,7 @@ namespace ModifyHooks
 			{
 				if (REL::Module::IsAE()) {
 					inc(r15d);
-					cmp(r15d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
+					cmp(r15d, Settings::GetSingleton()->VMtweaks.maxOpsPerFrame);
 					jb("KeepLooping");
 					mov(rcx, endLoop);
 					jmp(rcx);
@@ -51,7 +51,7 @@ namespace ModifyHooks
 					jmp(rcx);
 				} else {
 					inc(r14d);
-					cmp(r14d, Settings::GetSingleton()->tweaks.maxOpsPerFrame);
+					cmp(r14d, Settings::GetSingleton()->VMtweaks.maxOpsPerFrame);
 					mov(r8d, 10760);
 					jb("KeepLooping");
 					mov(rcx, endLoop);
@@ -99,7 +99,7 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			auto stackDumpTimeoutMS = Settings::GetSingleton()->tweaks.stackDumpTimeoutThreshold;
+			auto stackDumpTimeoutMS = Settings::GetSingleton()->VMtweaks.stackDumpTimeoutThreshold;
 			if (stackDumpTimeoutMS < 0) {
 				return;
 			} else if (stackDumpTimeoutMS == 0) {
@@ -336,9 +336,9 @@ namespace ModifyHooks
 	{
 		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable doc string loading
 		// This plays well with the load debug information hook
-		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::BSScript::ErrorLogger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
 		{
-			return thunk(a_unmadeSelf, a_logger, a_loadDebugInformation, true);
+			return func(a_unmadeSelf, a_logger, a_loadDebugInformation, true);
 		}
 
 		static inline REL::Relocation<decltype(thunk)> func;
@@ -357,9 +357,9 @@ namespace ModifyHooks
 	{
 		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable debug information loading
 		// This thunk hook plays well with the doc string hook
-		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::BSScript::ErrorLogger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
 		{
-			return thunk(a_unmadeSelf, a_logger, true, a_loadDocStrings);
+			return func(a_unmadeSelf, a_logger, true, a_loadDocStrings);
 		}
 
 		static inline REL::Relocation<decltype(thunk)> func;
@@ -377,7 +377,7 @@ namespace ModifyHooks
 	static inline void InstallHooks()
 	{
 		auto settings = Settings::GetSingleton();
-		if (settings->tweaks.maxOpsPerFrame > 0) {
+		if (settings->VMtweaks.maxOpsPerFrame > 0) {
 			PapyrusOpsPerFrameHook::Install();
 		}
 		if (settings->fixes.fixToggleScriptSave) {
@@ -390,17 +390,17 @@ namespace ModifyHooks
 		if (settings->fixes.fixIsHostileToActorCrash) {
 			FixIsHostileToActorCrash::Install();
 		}
-		if (settings->tweaks.stackDumpTimeoutThreshold > 0) {
+		if (settings->VMtweaks.stackDumpTimeoutThreshold > 0) {
 			StackDumpTimeoutHook::Install();
 		}
 		if (settings->fixes.fixDelayedScriptBreakage) {
 			FixDelayedTypeCast::Install();
 			FixDelayedTypeCastVFunc::Install();
 		}	
-		if (settings->tweaks.enableDocStrings) {
+		if (settings->VMtweaks.enableDocStrings) {
 			EnableLoadDocStrings::Install();
 		}
-		if (settings->tweaks.enableDebugInfo) {
+		if (settings->VMtweaks.enableDebugInfo) {
 			EnableLoadDebugInformation::Install();
 		}
 	}
