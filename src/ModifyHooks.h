@@ -20,6 +20,8 @@ namespace RE::BSScript::UnlinkedTypes
 	class LinkerConvertTypeFunctor : public ConvertTypeFunctor
 	{
 	public:
+		inline static constexpr auto RTTI = RTTI_BSScript____LinkerConvertTypeFunctor;
+		inline static constexpr auto VTABLE = VTABLE_BSScript____LinkerConvertTypeFunctor;
 		~LinkerConvertTypeFunctor() override;  // 00
 
 		bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) override;  // 01
@@ -27,6 +29,19 @@ namespace RE::BSScript::UnlinkedTypes
 		LinkerProcessor* linker;  // 08
 	};
 	static_assert(sizeof(LinkerConvertTypeFunctor) == 0x10);
+
+	class VMTypeResolveFunctor : public ConvertTypeFunctor
+	{
+	public:
+		inline static constexpr auto RTTI = RTTI_BSScript____VMTypeResolveFunctor;
+		inline static constexpr auto VTABLE = VTABLE_BSScript____VMTypeResolveFunctor;
+		~VMTypeResolveFunctor() override;  // 00
+
+		bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) override;  // 01
+		// members
+		RE::BSScript::Internal::VirtualMachine* vm;  // 08
+	};
+	static_assert(sizeof(VMTypeResolveFunctor) == 0x10);
 }
 
 namespace ModifyHooks
@@ -295,7 +310,7 @@ namespace ModifyHooks
 		// Install our hook at the specified address
 		static inline void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98721, 105384), REL::VariantOffset(0x2C8, 0x30D, 0x160) };
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(98721, 105384), REL::VariantOffset(0x2C8, 0x30D, 0x2C8) };
 			stl::write_thunk_call<FixDelayedTypeCast>(target.address());
 			logger::info("FixDelayedTypeCast hooked at address {:x}", target.address());
 			logger::info("FixDelayedTypeCast hooked at offset {:x}", target.offset());
