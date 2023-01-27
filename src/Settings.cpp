@@ -79,7 +79,7 @@ void Settings::Fixes::Load(CSimpleIniA& a_ini)
 	detail::get_value(a_ini, fixToggleScriptSave, section, "bFixToggleScriptsCommand", ";Fixes ToggleScripts command not persisting when saving/stack dumping\n;Scripts will now stay turned off when toggled off, and on when toggled on.");
 	detail::get_value(a_ini, fixScriptPageAllocation, section, "bFixScriptPageAllocation", ";Fix unintentionally allocating script pages when getting largest available page, but out of memory.");
 	detail::get_value(a_ini, fixIsHostileToActorCrash, section, "bFixIsHostileToActorCrash", ";Fix crash when passing in NONE object to script function Actor.IsHostileToActor().");
-	detail::get_value(a_ini, fixDelayedScriptBreakage, section, "bFixDelayedScriptBreakage", ";Fix scripts that don't load right away breaking completely if they reference an invalid object type (Ex: SuperSecretScript has a function that takes InvalidScript as a parameter).\n");
+	detail::get_value(a_ini, fixDelayedScriptBreakage, section, "bFixDelayedScriptBreakage", ";Fix scripts that don't load right away breaking completely if they reference an invalid object type (Ex: SuperSecretScript has a function that takes InvalidScript as a parameter).");
 }
 
 void Settings::VMTweaks::Load(CSimpleIniA& a_ini)
@@ -89,7 +89,7 @@ void Settings::VMTweaks::Load(CSimpleIniA& a_ini)
 	detail::get_value(a_ini, maxOpsPerFrame, section, "iMaxOpsPerFrame", ";Maximum papyrus operations per frame. Higher number means better script performance on average\n;Has a very minor impact on framerate, and varies from script to script. (Default: 500, Vanilla value: 100). Recommended Range: 100-2000. Set to 0 to disable");
 	detail::get_value(a_ini, stackDumpTimeoutThreshold, section, "iStackDumpTimeoutMS", ";Modify how long Papyrus can be \"overstressed\" before dumping stacks, in milliseconds (Default value: 15000, Vanilla value: 5000).\n;Set to 0 to disable the stack dump check, or -1 to disable this setting.\n;See https://www.nexusmods.com/skyrimspecialedition/articles/4625 for information on what a stack dump is");
 	detail::get_value(a_ini, enableDocStrings, section, "bEnableDocStrings", ";Enables loading of doc strings from scripts into the engine. Requires `bLoadDebugInformation` to be true in this INI");
-	detail::get_value(a_ini, enableDebugInfo, section, "bEnableDebugInformation", ";Enables Skyrim to load debug information of scripts, and print papyrus logs. This completely overrides bLoadDebugInformation in Skyrim.ini and is provided here for easier configuration");
+	detail::get_value(a_ini, enableDebugInfo, section, "bEnableDebugInformation", ";Enables Skyrim to load debug information of scripts. This completely overrides bLoadDebugInformation in Skyrim.ini and is provided here for easier configuration");
 }
 
 void Settings::LoggerTweaks::Load(CSimpleIniA& a_ini)
