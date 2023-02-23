@@ -9,11 +9,11 @@ namespace VRHooks
 	using StackID = RE::VMStackID;
 
 	static bool hasEnteredPlayroom = false;
+
+	static inline REL::Relocation<bool*> isInPlayroom{ REL::Offset(0x2FEB1C0) };
+	static inline REL::Relocation<bool*> bLoadVRPlayroom{ REL::Offset(0x1EAC188) };
 	struct VRPlayroomScriptDisable
 	{
-		static inline REL::Relocation<bool*> isInPlayroom{ REL::Offset(0x2FEB1C0) };
-		static inline REL::Relocation<bool*> bLoadVRPlayroom{ REL::Offset(0x1EAC188) };
-
 		// keep original checks, but also add VRPlayroom check for non-VRPlayroom scripts
 		static bool stackCheckIntercept(
 			std::uint32_t a_objectPackedData, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery)
@@ -142,6 +142,58 @@ namespace VRHooks
 		}
 	};
 
+	struct StackDumpBlockHook
+	{
+		static void thunk(RE::SkyrimVM* a_vm)
+		{
+			if (*bLoadVRPlayroom.get() && *isInPlayroom.get()) {
+				// Don't stack dump
+				return;
+			}
+			return func(a_vm);
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			assert(REL::Module::IsVR());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 0x0), REL::Offset(0xEF) };
+
+			stl::write_thunk_call<StackDumpBlockHook>(target.address());
+
+			logger::info("StackDumpBlockHook hooked at address {:x}", target.address());
+			logger::info("StackDumpBlockHook hooked at offset {:X}", target.offset());
+		}
+	};
+
+	struct LogStackDumpBlockHook
+	{
+		static void thunk(std::uint64_t unk0, std::uint64_t unk1, std::uint64_t unk2)
+		{
+			if (*bLoadVRPlayroom.get() && *isInPlayroom.get()) {
+				// Don't log a stack dump occurring
+				return;
+			}
+			return func(unk0, unk1, unk2);
+		}
+
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		// Install our hook at the specified address
+		static inline void Install()
+		{
+			assert(REL::Module::IsVR());
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(53195, 0x0), REL::Offset(0xE3) };
+
+			stl::write_thunk_call<LogStackDumpBlockHook>(target.address());
+
+			logger::info("LogStackDumpBlockHook hooked at address {:x}", target.address());
+			logger::info("LogStackDumpBlockHook hooked at offset {:X}", target.offset());
+		}
+	};
+
 	static inline void InstallHooks()
 	{
 		if (!REL::Module::IsVR()) {
@@ -150,6 +202,11 @@ namespace VRHooks
 		if (Settings::GetSingleton()->experimental.disableScriptsInPlayroom) {
 			VRPlayroomScriptDisable::Install();
 			ReturnToMainMenuHook::Install();
+
+			// Stack dumps occur since we are intentionally pausing all the mod scripts that aren't "VRPlayroom"
+			// Stack dumps are harmless anyway, but to prevent log spam, we will skip stack dumping while the player is in the playroom
+			StackDumpBlockHook::Install();
+			LogStackDumpBlockHook::Install();
 		}
 	}
 }
