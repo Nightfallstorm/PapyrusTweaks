@@ -70,6 +70,9 @@ void Settings::MigrateDeprecatedTweaks(CSimpleIniA& a_ini)
 
 	// 3.3 (Reset script method prefix exclusions for 3.2 and below to add new additions for everyone who updates)
 	a_ini.Delete(section, "sScriptMethodsToExclude", true);
+
+	// 4.1 (Reset script class exclusions to add new additions for everyone who updates)
+	a_ini.Delete(section, "sScriptClassesToExclude", true);
 }
 
 void Settings::Fixes::Load(CSimpleIniA& a_ini)
@@ -88,7 +91,7 @@ void Settings::VMTweaks::Load(CSimpleIniA& a_ini)
 
 	detail::get_value(a_ini, maxOpsPerFrame, section, "iMaxOpsPerFrame", ";Maximum papyrus operations per frame. Higher number means better script performance on average\n;Has a very minor impact on framerate, and varies from script to script. (Default: 500, Vanilla value: 100). Recommended Range: 100-2000. Set to 0 to disable");
 	detail::get_value(a_ini, stackDumpTimeoutThreshold, section, "iStackDumpTimeoutMS", ";Modify how long Papyrus can be \"overstressed\" before dumping stacks, in milliseconds (Default value: 15000, Vanilla value: 5000).\n;Set to 0 to disable the stack dump check, or -1 to disable this setting.\n;See https://www.nexusmods.com/skyrimspecialedition/articles/4625 for information on what a stack dump is");
-	detail::get_value(a_ini, enableDocStrings, section, "bEnableDocStrings", ";Enables loading of doc strings from scripts into the engine. Requires `bLoadDebugInformation` to be true in this INI");
+	detail::get_value(a_ini, enableDocStrings, section, "bEnableDocStrings", ";Enables loading of doc strings from scripts into the engine. Requires `bEnableDebugInformation` to be true in this INI");
 	detail::get_value(a_ini, enableDebugInfo, section, "bEnableDebugInformation", ";Enables Skyrim to load debug information of scripts. This completely overrides bLoadDebugInformation in Skyrim.ini and is provided here for easier configuration");
 }
 
@@ -109,7 +112,7 @@ void Settings::Experimental::Load(CSimpleIniA& a_ini)
 	const char* section = "Experimental";
 
     detail::get_value(a_ini, speedUpNativeCalls, section, "bSpeedUpNativeCalls", ";(Formerly bRunScriptsOnMainThreadOnly)\n;Speeds up native calls by desyncing them from framerate and instead syncing script calls to a spinlock, greatly improving script performance while still preventing concurrent execution of native calls");
-	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sScriptClassesToExclude", ";(Formerly sMainThreadClassesToExclude, requires bSpeedUpNativeCalls=true)\n;List of script classes to exclude from being sped up by bSpeedUpNativeCalls.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
+	detail::get_value(a_ini, classesToExcludeFromSpeedUp, section, "sScriptClassExclusions", ";(Formerly sMainThreadClassesToExclude, requires bSpeedUpNativeCalls=true)\n;List of script classes to exclude from being sped up by bSpeedUpNativeCalls.\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing");
 	
 	detail::get_value(a_ini, methodPrefixesToExcludeFromSpeedup, section, "sScriptMethodPrefixesToExclude", ";(Formerly sMainThreadMethodsToExclude, requires bSpeedUpNativeCalls=true)\n;List of script method prefixes to exclude from being sped up (ex: \"Equip\" excludes \"EquipItem\" and \"EquipItemByID\", but does NOT exclude \"UnequipItem\".\n;It is strongly recommended to leave at defaults unless you absolutely know what you're doing\n;as a lot of modifying functions like `EquipItem` do not work properly if executed more than once in a single frame.\n; Defaults exclude everything except for read-only functions (ex: GetFormFromFile, HasKeyword, IsLoaded, etc.)");
 

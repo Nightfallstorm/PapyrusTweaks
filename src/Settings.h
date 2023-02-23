@@ -46,7 +46,7 @@ public:
 
 		bool speedUpNativeCalls{ false };
 
-		std::string classesToExcludeFromSpeedUp{ "UI, ConsoleUtil, PO3_SKSEFunctions, MfgConsole, MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks" };
+		std::string classesToExcludeFromSpeedUp{ "UI, ConsoleUtil, PO3_SKSEFunctions, MfgConsole, MFGConsoleFunc, Input, Debug, Utility, PapyrusTweaks, Quest" };
 
 		std::string methodPrefixesToExcludeFromSpeedup{
 			/* Default blocks all vanilla functions that aren't read-only */
