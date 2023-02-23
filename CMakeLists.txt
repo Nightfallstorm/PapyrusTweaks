@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(NAME "PapyrusTweaks")
-set(VERSION 4.0.0)
+set(VERSION 4.1.0)
 
 # ---- Cache build vars ----
 
