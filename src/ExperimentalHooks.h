@@ -9,6 +9,8 @@ namespace ExperimentalHooks
 	using VM = RE::BSScript::Internal::VirtualMachine;
 	using StackID = RE::VMStackID;
 
+	static inline std::mutex functionMutex;
+
 	struct CallableFromTaskletInterceptHook
 	{
 		static inline std::vector<std::string> excludedClasses;
@@ -152,17 +154,13 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 
 	struct AttemptFunctionCallHook
 	{
-		// Use function queue lock around `AttemptFunctionCall` when called from tasklets to prevent concurrent execution of native calls now that they are sped up.
-		// The function queue lock is already used in `ProcessMessageQueue` for calling `AttemptFunctionCall` and `AttemptFunctionReturn`,
-		// so it makes sense to use the same lock here.
+		// Use function lock around `AttemptFunctionCall` when called from tasklets to prevent concurrent execution of native calls now that they are sped up.
 		// This isn't the most sophisticated way to synchronize previously non-sped up native calls as all script functions will sync to the lock,
 		// but it is one of the simplest approaches and shouldn't cause any measurable script performance loss outside of specific synthetic tests
 		static std::uint64_t thunk(VM* a_vm, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::CodeTasklet>* a_tasklet, bool a_callingFromTasklets)
 		{
-			a_vm->funcQueueLock.Lock();
-			auto result = func(a_vm, a_stack, a_tasklet, a_callingFromTasklets);  // VirtualMachine::AttemptFunctionCall
-			a_vm->funcQueueLock.Unlock();
-			return result;
+			std::lock_guard<std::mutex> lock_guard(functionMutex);
+			return func(a_vm, a_stack, a_tasklet, a_callingFromTasklets);  // VirtualMachine::AttemptFunctionCall
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
