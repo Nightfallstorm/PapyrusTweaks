@@ -4,12 +4,14 @@
 #include <string.h>
 
 #undef GetObject
+
 namespace LoggerHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
 
 	struct ValidationSignaturesHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static std::uint64_t thunk(RE::BSScript::IFunction** a_function, RE::BSScrapArray<RE::BSScript::Variable>* a_varArray, char* a_outString, std::int32_t a_bufferSize)
 		{
 			std::uint64_t result = func(a_function, a_varArray, a_outString, a_bufferSize);
@@ -108,6 +110,7 @@ namespace LoggerHooks
 	// "Error: File \" % s \" does not exist or is not currently loaded."
 	struct GetFormFromFileHook
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		// Install our hook at the specified address
 		static inline void Install()
 		{
@@ -123,6 +126,7 @@ namespace LoggerHooks
 	// "Error: Unable to bind script MCMFlaskUtilsScript to FlaskUtilsMCM (7E007E63) because their base types do not match"
 	struct BaseTypeMismatch
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		// Improve BaseTypeMismatch to distinguish when script not loaded vs script type incorrect
 		static bool thunk(const char* a_buffer, const std::size_t bufferCount, const char* a_format, const char* a_scriptName, const char* a_objectName)
 		{
@@ -170,6 +174,7 @@ namespace LoggerHooks
 	// "Property %s on script %s attached to %s cannot be initialized because the script no longer contains that property"
 	struct NoPropertyOnScriptHook
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		// Install our hook at the specified address
 		static inline void Install()
 		{
@@ -184,6 +189,7 @@ namespace LoggerHooks
 	// "Cannot open store for class \"%s\", missing file?"
 	struct DisableMissingScriptError
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		// Install our hook at the specified address
 		static inline void Install()
 		{
@@ -206,6 +212,7 @@ namespace LoggerHooks
 	// Adds a brief summary of running stacks
 	struct SummarizeStackDumpHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static inline std::map<std::string, std::uint32_t> eventMap;
 		static inline std::set<RE::BSScript::Stack*> parsedStacks;
 		// Print out events by order of frequency, to more easily see which events are being spammy/problematic
@@ -313,6 +320,13 @@ namespace LoggerHooks
 			logger::info("SummarizeStackDumpHook placed!");
 		}
 	};
+
+	static constexpr auto hookTrampolineSize = ValidationSignaturesHook::hookTrampolineSize
+	+ GetFormFromFileHook::hookTrampolineSize
+	+ BaseTypeMismatch::hookTrampolineSize
+	+ NoPropertyOnScriptHook::hookTrampolineSize
+	+ DisableMissingScriptError::hookTrampolineSize
+	+ SummarizeStackDumpHook::hookTrampolineSize;
 
 	static inline void InstallHooks()
 	{

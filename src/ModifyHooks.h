@@ -2,48 +2,6 @@
 #include "Settings.h"
 #include <xbyak/xbyak.h>
 
-// TEMPORARY UNTIL CLIB-NG UPDATES
-namespace RE::BSScript::UnlinkedTypes
-{
-	class ConvertTypeFunctor
-	{
-	public:
-		inline static constexpr auto RTTI = RTTI_BSScript__UnlinkedTypes__Function__ConvertTypeFunctor;
-		inline static constexpr auto VTABLE = VTABLE_BSScript__UnlinkedTypes__Function__ConvertTypeFunctor;
-
-		virtual ~ConvertTypeFunctor();  // 00
-
-		virtual bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) = 0;  // 01
-	};
-	static_assert(sizeof(ConvertTypeFunctor) == 0x8);
-
-	class LinkerConvertTypeFunctor : public ConvertTypeFunctor
-	{
-	public:
-		inline static constexpr auto RTTI = RTTI_BSScript____LinkerConvertTypeFunctor;
-		inline static constexpr auto VTABLE = VTABLE_BSScript____LinkerConvertTypeFunctor;
-		~LinkerConvertTypeFunctor() override;  // 00
-
-		bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) override;  // 01
-		// members
-		LinkerProcessor* linker;  // 08
-	};
-	static_assert(sizeof(LinkerConvertTypeFunctor) == 0x10);
-
-	class VMTypeResolveFunctor : public ConvertTypeFunctor
-	{
-	public:
-		inline static constexpr auto RTTI = RTTI_BSScript____VMTypeResolveFunctor;
-		inline static constexpr auto VTABLE = VTABLE_BSScript____VMTypeResolveFunctor;
-		~VMTypeResolveFunctor() override;  // 00
-
-		bool ConvertVariableType(BSFixedString* a_typeAsString, TypeInfo& a_typeOut) override;  // 01
-		// members
-		RE::BSScript::Internal::VirtualMachine* vm;  // 08
-	};
-	static_assert(sizeof(VMTypeResolveFunctor) == 0x10);
-}
-
 namespace ModifyHooks
 {
 	using VM = RE::BSScript::Internal::VirtualMachine;
@@ -51,6 +9,7 @@ namespace ModifyHooks
 
 	struct PapyrusOpsPerFrameHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize + 0x30;
 		struct PapyrusOpsModifier : Xbyak::CodeGenerator
 		{
 			PapyrusOpsModifier(std::uintptr_t beginLoop, std::uintptr_t endLoop)
@@ -89,10 +48,8 @@ namespace ModifyHooks
 			int fillRange = REL::Module::IsAE() ? 0xD : 0x13;
 			REL::safe_fill(target.address(), REL::NOP, fillRange);
 			auto& trampoline = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(newCompareCheck.getSize());
 			auto result = trampoline.allocate(newCompareCheck);
 			auto& trampoline2 = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
 			logger::info("PapyrusOpsPerFrameHook hooked at address {:x}", target.address());
@@ -102,6 +59,7 @@ namespace ModifyHooks
 
 	struct StackDumpTimeoutHook
 	{
+		static constexpr auto hookTrampolineSize = 0x0;
 		struct StackDumpTimeoutModifier : Xbyak::CodeGenerator
 		{
 			StackDumpTimeoutModifier(int timeoutMS)
@@ -147,6 +105,7 @@ namespace ModifyHooks
 
 	struct FixToggleScriptsSaveHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize + 0x10;
 		struct CallThunk : Xbyak::CodeGenerator
 		{
 			CallThunk(std::uintptr_t funct)
@@ -161,9 +120,9 @@ namespace ModifyHooks
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
 		{
 			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
-				a_this->frozenLock.Lock();
-				a_this->isFrozen = a_frozen;
-				a_this->frozenLock.Unlock();
+				a_this->GetVMRuntimeData().frozenLock.Lock();
+				a_this->GetVMRuntimeData().isFrozen = a_frozen;
+				a_this->GetVMRuntimeData().frozenLock.Unlock();
 			}
 		}
 
@@ -181,10 +140,8 @@ namespace ModifyHooks
 				// so we can't use a regular thunk call
 				auto callThunk = CallThunk(reinterpret_cast<std::uintptr_t>(thunk));
 				auto& trampoline = SKSE::GetTrampoline();
-				SKSE::AllocTrampoline(callThunk.getSize());
 				auto result = trampoline.allocate(callThunk);
 				auto& trampoline2 = SKSE::GetTrampoline();
-				SKSE::AllocTrampoline(14);
 				trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 			}
 
@@ -195,12 +152,13 @@ namespace ModifyHooks
 
 	struct FixToggleScriptsDumpHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static void thunk(RE::SkyrimVM* a_this, bool a_frozen)
 		{
 			if (RE::Script::GetProcessScripts()) {  // Only unfreeze script processing if script processing is enabled
-				a_this->frozenLock.Lock();
-				a_this->isFrozen = a_frozen;
-				a_this->frozenLock.Unlock();
+				a_this->GetVMRuntimeData().frozenLock.Lock();
+				a_this->GetVMRuntimeData().isFrozen = a_frozen;
+				a_this->GetVMRuntimeData().frozenLock.Unlock();
 			}
 		}
 
@@ -219,6 +177,7 @@ namespace ModifyHooks
 
 	struct FixScriptPageAllocation
 	{
+		static constexpr auto hookTrampolineSize = 0x0;
 		// BSScript::SimpleAllocMemoryPagePolicy::GetLargestAvailablePage
 		static RE::BSScript::IMemoryPagePolicy::AllocationStatus thunk(RE::BSScript::SimpleAllocMemoryPagePolicy* self, RE::BSTAutoPointer<RE::BSScript::MemoryPage>& a_newPage)
 		{
@@ -253,6 +212,7 @@ namespace ModifyHooks
 
 	struct FixIsHostileToActorCrash
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		// Easiest hook here is to replace the original IsHostileToActor callback with our own
 		static std::uint64_t thunk(std::uint64_t unk, char* functionName, char* className, std::uintptr_t callback, VM** a_vm)
 		{
@@ -292,6 +252,7 @@ namespace ModifyHooks
 
 	struct FixDelayedTypeCast
 	{
+		static constexpr auto hookTrampolineSize = 2 * jumpTrampolineSize;
 		auto static inline noneTypeString = RE::BSFixedString("NONE");
 		// Note: This fix assumes that scripts are ALWAYS compiled properly (aka nothing is malformed), meaning the original function only fails
 		// if the type doesn't exist (ex: Variable casted to SuperSecretClass, but SuperSecretClass doesn't exist)
@@ -324,6 +285,7 @@ namespace ModifyHooks
 
 	struct FixDelayedTypeCastVFunc
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		auto static inline noneTypeString = RE::BSFixedString("NONE");
 		// See FixDelayedTypeCast for details, this is just the hook for the special vfunc version that jumps to the original
 		static bool thunk(RE::BSScript::UnlinkedTypes::LinkerConvertTypeFunctor* self, RE::BSFixedString* a_name, RE::BSScript::TypeInfo& a_typeOut)
@@ -349,9 +311,10 @@ namespace ModifyHooks
 
 	struct EnableLoadDocStrings
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable doc string loading
 		// This plays well with the load debug information hook
-		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, bool a_loadDebugInformation, [[maybe_unused]] bool a_loadDocStrings)
 		{
 			return func(a_unmadeSelf, a_logger, a_loadDebugInformation, true);
 		}
@@ -370,9 +333,10 @@ namespace ModifyHooks
 
 	struct EnableLoadDebugInformation
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		// Hook the SkyrimVM's constructor that constructs CompiledScriptLoader, to enable debug information loading
 		// This thunk hook plays well with the doc string hook
-		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, bool a_loadDebugInformation, bool a_loadDocStrings)
+		static RE::BSScript::CompiledScriptLoader* thunk(RE::BSScript::CompiledScriptLoader* a_unmadeSelf, RE::SkyrimScript::Logger* a_logger, [[maybe_unused]] bool a_loadDebugInformation, bool a_loadDocStrings)
 		{
 			return func(a_unmadeSelf, a_logger, true, a_loadDocStrings);
 		}
@@ -388,6 +352,17 @@ namespace ModifyHooks
 			logger::info("EnableLoadDebugInformation hooked at offset {:x}", target.offset());
 		}
 	};
+
+	static constexpr auto hookTrampolineSize = PapyrusOpsPerFrameHook::hookTrampolineSize
+	+ StackDumpTimeoutHook::hookTrampolineSize
+	+ FixToggleScriptsSaveHook::hookTrampolineSize
+	+ FixToggleScriptsDumpHook::hookTrampolineSize
+	+ FixScriptPageAllocation::hookTrampolineSize
+	+ FixIsHostileToActorCrash::hookTrampolineSize
+	+ FixDelayedTypeCast::hookTrampolineSize
+	+ FixDelayedTypeCastVFunc::hookTrampolineSize
+	+ EnableLoadDocStrings::hookTrampolineSize
+	+ EnableLoadDebugInformation::hookTrampolineSize;
 
 	static inline void InstallHooks()
 	{

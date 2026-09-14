@@ -1,60 +1,173 @@
 {
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
-      "binaryDir": "${sourceDir}/build",
+      "name": "common",
+      "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": {
-          "type": "STRING",
-          "value": "Release"
-        }
+        "CMAKE_CXX_FLAGS": "$env{PROJECT_PLATFORM_FLAGS} $env{PROJECT_TEXT_FLAGS} $env{PROJECT_COMPILER_FLAGS} $penv{CXX_FLAGS}"
       },
       "errors": {
         "deprecated": true
       },
-      "hidden": true,
-      "name": "cmake-dev",
       "warnings": {
         "deprecated": true,
         "dev": true
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "intelliSenseMode": "windows-msvc-x64",
+          "enableMicrosoftCodeAnalysis": true,
+          "enableClangTidyCodeAnalysis": true
+        }
       }
     },
     {
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": {
-          "type": "STRING",
-          "value": "$env{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        }
-      },
+      "name": "architecture-x64",
       "hidden": true,
-      "name": "vcpkg"
+      "environment": {
+        "PROJECT_ARCHITECTURE": "x64"
+      }
     },
     {
-      "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": {
-          "type": "STRING",
-          "value": "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-        },
-        "VCPKG_TARGET_TRIPLET": {
-          "type": "STRING",
-          "value": "x64-windows-static"
-        }
-      },
+      "name": "buildtype-debug",
       "hidden": true,
-      "name": "windows"
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     },
     {
+      "name": "buildtype-release",
+      "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 $penv{CXXFLAGS}"
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "buildtype-relwithdebinfo",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "packaging-vcpkg-linux-clangcl",
+      "hidden": true,
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "USE_VCPKG": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-clangcl",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/linux-cross-compile/custom-triplets",
+        "VCPKG_OVERLAY_PORTS": "${sourceDir}/linux-cross-compile/custom-ports",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/linux-cross-compile/toolchain-linux-clangcl.cmake"
+      }
+    },
+    {
+      "name": "platform-win32",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
       },
-      "generator": "Visual Studio 17 2022",
+      "environment": {
+        "PROJECT_PLATFORM_FLAGS": "-DWIN32_LEAN_AND_MEAN -DNOMINMAX",
+        "PROJECT_PLATFORM": "windows"
+      }
+    },
+    {
+      "name": "platform-win32-unicode",
+      "hidden": true,
+      "inherits": "platform-win32",
+      "environment": {
+        "PROJECT_TEXT_FLAGS": "-DUNICODE -D_UNICODE"
+      }
+    },
+    {
+      "name": "generator-ninja",
+      "hidden": true,
+      "generator": "Ninja"
+    },
+    {
+      "name": "compiler-linux-clangcl",
+      "hidden": true,
+      "environment": {
+        "PROJECT_COMPILER": "clang-cl",
+        "PROJECT_COMPILER_FLAGS": "/permissive- /EHsc /W4 /WX /bigobj -Wno-overloaded-virtual -Wno-delete-non-abstract-non-virtual-dtor -Wno-inconsistent-missing-override -Wno-reinterpret-base-class -Wno-nonportable-include-path -Wno-deprecated-copy-with-user-provided-copy -Wno-invalid-offsetof -Wno-switch -Wno-unused-command-line-argument -Wno-deprecated-volatile -Wno-unused-private-field"
+      }
+    },
+    {
+      "name": "runtimes-all",
+      "hidden": true
+    },
+    {
+      "name": "runtimes-vr",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_AE": "OFF",
+        "ENABLE_SKYRIM_SE": "OFF"
+      }
+    },
+    {
+      "name": "runtimes-flatrim",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_VR": "OFF"
+      }
+    },
+    {
+      "name": "runtimes-se",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_AE": "OFF",
+        "ENABLE_SKYRIM_VR": "OFF"
+      }
+    },
+    {
+      "name": "runtimes-ae",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_SE": "OFF",
+        "ENABLE_SKYRIM_VR": "OFF"
+      }
+    },
+    {
+      "name": "runtimes-pre-ae",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_AE": "OFF"
+      }
+    },
+    {
+      "name": "runtimes-current",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_SKYRIM_SE": "OFF"
+      }
+    },
+    {
+      "name": "build-relwithdebinfo-linux",
       "inherits": [
-        "cmake-dev",
-        "vcpkg",
-        "windows"
+        "buildtype-relwithdebinfo",
+        "architecture-x64",
+        "platform-win32-unicode",
+        "generator-ninja",
+        "compiler-linux-clangcl",
+        "packaging-vcpkg-linux-clangcl",
+        "runtimes-all",
+        "common"
       ],
-      "name": "papyrustweaks",
-      "toolset": "v143"
+      "binaryDir": "${sourceDir}/build/relwithdebinfo-linux"
     }
   ],
-  "version": 3
+  "buildPresets": [
+    {
+      "name": "relwithdebinfo-linux",
+      "displayName": "Release (Linux)",
+      "configurePreset": "build-relwithdebinfo-linux"
+    }
+  ]
 }

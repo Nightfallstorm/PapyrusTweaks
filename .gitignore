@@ -1,2 +1,8 @@
 build*/
 /.vs
++
+# Ignore Jetbrains IDE
+.idea/
+
+# Ignore local linux environment
+local-env.cmake

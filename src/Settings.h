@@ -89,5 +89,5 @@ private:
 		}
 	};
 
-	robin_hood::unordered_flat_map<std::string, bool> settingsMap{};
+	std::map<std::string, bool> settingsMap{};
 };

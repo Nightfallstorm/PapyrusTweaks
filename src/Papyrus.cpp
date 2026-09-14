@@ -1,12 +1,13 @@
 #include "Papyrus.h"
 #include "Settings.h"
 #include "ExperimentalHooks.h"
+#include "Version.h"
 
 namespace Papyrus
 {
 	inline std::vector<std::int32_t> GetPapyrusTweaksVersion(RE::StaticFunctionTag*)
 	{
-		return { Version::MAJOR, Version::MINOR, Version::PATCH };
+		return { Project::Version::MAJOR, Project::Version::MINOR, Project::Version::PATCH };
 	}
 
 	bool IsNativeCallSpeedUpActive(VM*, StackID, RE::StaticFunctionTag*)

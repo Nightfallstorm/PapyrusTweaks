@@ -7,7 +7,6 @@
 #include "SKSE/SKSE.h"
 
 #include <SimpleIni.h>
-#include <robin_hood.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <xbyak/xbyak.h>
 #include "Util.h"
@@ -16,7 +15,7 @@ namespace logger = SKSE::log;
 namespace string = Util::stl::string;
 
 using namespace std::literals;
-
+static constexpr auto jumpTrampolineSize = 0x14;
 namespace stl
 {
 	using namespace SKSE::stl;
@@ -33,8 +32,6 @@ namespace stl
 	void write_thunk_call(std::uintptr_t a_src)
 	{
 		auto& trampoline = SKSE::GetTrampoline();
-		SKSE::AllocTrampoline(14);
-
 		T::func = trampoline.write_call<5>(a_src, T::thunk);
 	}
 
@@ -58,5 +55,3 @@ namespace stl
 }
 
 #define DLLEXPORT __declspec(dllexport)
-
-#include "Version.h"

@@ -14,6 +14,7 @@ namespace VRHooks
 	static inline REL::Relocation<bool*> bLoadVRPlayroom{ REL::Offset(0x1EAC188) };
 	struct VRPlayroomScriptDisable
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize + 0x50;
 		// keep original checks, but also add VRPlayroom check for non-VRPlayroom scripts
 		static bool stackCheckIntercept(
 			std::uint32_t a_objectPackedData, RE::BSScript::Stack* a_stack, RE::BSTSmartPointer<RE::BSScript::Internal::IFuncCallQuery>* a_funcCallQuery)
@@ -108,10 +109,8 @@ namespace VRHooks
 			REL::safe_fill(target.address(), REL::NOP, 0x21);
 
 			auto& trampoline = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(stackCheckCode.getSize());
 			auto result = trampoline.allocate(stackCheckCode);
 			auto& trampoline2 = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
 			logger::info("VRPlayroomScriptDisable hooked at address {:x}", target.address());
@@ -121,6 +120,7 @@ namespace VRHooks
 
 	struct ReturnToMainMenuHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static std::uint64_t thunk(std::uint64_t unk0, std::uint64_t unk1, std::uint64_t unk2, std::uint64_t unk3)
 		{
 			hasEnteredPlayroom = false;  // reset hasEnteredPlayroom since we are returning to main menu
@@ -144,6 +144,7 @@ namespace VRHooks
 
 	struct StackDumpBlockHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static void thunk(RE::SkyrimVM* a_vm)
 		{
 			if (*bLoadVRPlayroom.get() && *isInPlayroom.get()) {
@@ -170,6 +171,7 @@ namespace VRHooks
 
 	struct LogStackDumpBlockHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		static void thunk(std::uint64_t unk0, std::uint64_t unk1, std::uint64_t unk2)
 		{
 			if (*bLoadVRPlayroom.get() && *isInPlayroom.get()) {
@@ -193,6 +195,11 @@ namespace VRHooks
 			logger::info("LogStackDumpBlockHook hooked at offset {:X}", target.offset());
 		}
 	};
+
+	static constexpr auto hookTrampolineSize = VRPlayroomScriptDisable::hookTrampolineSize
+	+ ReturnToMainMenuHook::hookTrampolineSize
+	+ StackDumpBlockHook::hookTrampolineSize
+	+ LogStackDumpBlockHook::hookTrampolineSize;
 
 	static inline void InstallHooks()
 	{

@@ -13,6 +13,7 @@ namespace ExperimentalHooks
 
 	struct CallableFromTaskletInterceptHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize + 0x40;
 		static inline std::vector<std::string> excludedClasses;
 		static inline std::vector<std::string> excludedMethodPrefixes;
 		static inline std::set<RE::VMStackID> excludedStacks;
@@ -140,10 +141,8 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 			REL::safe_fill(target.address(), REL::NOP, 0xD);
 
 			auto& trampoline = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(stackCheckCode.getSize());
 			auto result = trampoline.allocate(stackCheckCode);
 			auto& trampoline2 = SKSE::GetTrampoline();
-			SKSE::AllocTrampoline(14);
 			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
 
 			logger::info("CallableFromTaskletInterceptHook hooked at address {:x}", target.address());
@@ -154,6 +153,7 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 
 	struct AttemptFunctionCallHook
 	{
+		static constexpr auto hookTrampolineSize = 1 * jumpTrampolineSize;
 		// Use function lock around `AttemptFunctionCall` when called from tasklets to prevent concurrent execution of native calls now that they are sped up.
 		// This isn't the most sophisticated way to synchronize previously non-sped up native calls as all script functions will sync to the lock,
 		// but it is one of the simplest approaches and shouldn't cause any measurable script performance loss outside of specific synthetic tests
@@ -180,6 +180,7 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 	// TODO: Expand messagebox message?
 	struct BypassCorruptSaveHook
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		// strip the `ResetGame` callback
 		struct XorRDX : Xbyak::CodeGenerator
 		{
@@ -206,6 +207,7 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 	// In other words, if VM is NOT overstressed, change the pseudocode `ADJ(skyrimVM)->memoryPagePolicy.ignoreMemoryLimit = 0;` to `ADJ(skyrimVM)->memoryPagePolicy.ignoreMemoryLimit = 1;`
 	struct KeepIgnoreMemoryLimitFlag
 	{
+		static constexpr auto hookTrampolineSize = 0;
 		// Install our hook at the specified address
 		static inline void Install()
 		{
@@ -230,6 +232,11 @@ logger::info("Speeding up {}.{}", a_function->GetObjectTypeName(), a_function->G
 			logger::info("Hooked KeepIgnoreMemoryLimitFlag at offset {:x}", target.offset());
 		}
 	};
+
+	static constexpr auto hookTrampolineSize = CallableFromTaskletInterceptHook::hookTrampolineSize
+	+ AttemptFunctionCallHook::hookTrampolineSize
+	+ BypassCorruptSaveHook::hookTrampolineSize
+	+ KeepIgnoreMemoryLimitFlag::hookTrampolineSize;
 
 	static inline void InstallHooks()
 	{

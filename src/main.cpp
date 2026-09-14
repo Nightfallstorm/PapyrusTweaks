@@ -4,6 +4,7 @@
 #include "Papyrus.h"
 #include "Settings.h"
 #include "VRHooks.h"
+#include "Version.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
@@ -18,62 +19,41 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	}
 }
 
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
-	SKSE::PluginVersionData v;
-	v.PluginVersion(Version::MAJOR);
-	v.PluginName(Version::PROJECT);
-	v.AuthorName("Nightfallstorm");
-	v.UsesAddressLibrary(true);
-	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST_AE });
-	v.UsesNoStructs(true);
+SKSEPluginInfo(
+	.Version = {Project::Version::MAJOR, Project::Version::MINOR, Project::Version::PATCH},
+	.Name = Project::NAME,
+	.Author = Project::AUTHOR,
+	.SupportEmail = "N/A",
+	.StructCompatibility = SKSE::StructCompatibility::Independent,
+)
 
-	return v;
-}();
-
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
+extern "C" DLLEXPORT const char* APIENTRY GetPluginVersion()
 {
-	a_info->infoVersion = SKSE::PluginInfo::kVersion;
-	a_info->name = Version::PROJECT.data();
-	a_info->version = Version::MAJOR;
-
-	if (a_skse->IsEditor()) {
-		logger::critical("Loaded in editor, marking as incompatible"sv);
-		return false;
-	}
-
-	const auto ver = a_skse->RuntimeVersion();
-
-	return true;
+	return Project::Version::NAME.data();
 }
 
-void InitializeLog()
+SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
-	auto path = logger::log_directory();
-	if (!path) {
-		//stl::report_and_fail("Failed to find standard logging directory"sv); // Doesn't work in VR
-	}
+	// TODO: Incorporate RecursionMonitor
+	// TODO: Re-do log level appropriately
+	// TODO: Re-evaluate logs to ensure no on-hook logging on release builds
+	auto logLevel = spdlog::level::info;
+#ifdef _DEBUG
+	logLevel = spdlog::level::debug;
+#endif
 
-	*path /= Version::PROJECT;
-	*path += ".log"sv;
-	auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+	constexpr auto totalTrampolineSize = ModifyHooks::hookTrampolineSize
+	+ LoggerHooks::hookTrampolineSize
+	+ VRHooks::hookTrampolineSize
+	+ ExperimentalHooks::hookTrampolineSize;
 
-	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
-
-	log->set_level(spdlog::level::info);
-	log->flush_on(spdlog::level::info);
-
-	spdlog::set_default_logger(std::move(log));
-	spdlog::set_pattern("[%H:%M:%S:%e] %v"s);
-
-	logger::info(FMT_STRING("{} v{}"), Version::PROJECT, Version::NAME);
-}
-
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-{
-	InitializeLog();
-	logger::info("loaded plugin");
-
-	SKSE::Init(a_skse);
+	const auto initInfo = SKSE::InitInfo {
+		.log = true,
+		.logLevel = logLevel,
+		.trampoline = true,
+		.trampolineSize = totalTrampolineSize
+	};
+	SKSE::Init(a_skse, initInfo);
 
 	auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);

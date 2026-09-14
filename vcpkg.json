@@ -1,23 +1,49 @@
 {
-  "name": "papyrustweaks",
-  "version-string": "4.1.1",
-  "description": "Collections of tweaks and fixes for Skyrim's script engine",
-  "homepage": "https://github.com/Nightfallstorm/PapyrusTweaks",
-  "license": "GPL-3.0-or-later",
+  "builtin-baseline": "ee12231b20c95013c6638d845d04c91559a1d1ff",
   "dependencies": [
-    "boost-stl-interfaces",
-    "robin-hood-hashing",
-    "rsm-binary-io",
-    "simpleini",
-    "spdlog",
-    "xbyak",
-    "commonlibsse-ng"
-  ],
-  "builtin-baseline": "bd1ef2df46303989eeb048eb7aa9b816aa46365e",
-  "overrides": [
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    {
+      "name": "directxmath",
+      "version>=": "2025-04-03"
+    },
+    {
+      "name": "directxtk",
+      "version>=": "2025-10-27"
+    },
     {
       "name": "fmt",
-      "version": "8.0.1"
+      "version>=": "12.1.0"
+    },
+    {
+      "name": "nlohmann-json",
+      "version>=": "3.12.0"
+    },
+    {
+      "name": "rapidcsv",
+      "version>=": "8.90"
+    },
+    {
+      "name": "simpleini",
+      "version>=": "4.25"
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
+    {
+      "name": "toml11",
+      "version>=": "4.4.0"
+    },
+    {
+      "name": "xbyak",
+      "version>=": "7.28"
+    },
+    {
+      "name": "catch2",
+      "version>=": "3.11.0"
     }
   ]
 }
