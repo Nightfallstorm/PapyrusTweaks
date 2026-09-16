@@ -83,6 +83,7 @@ void Settings::Fixes::Load(CSimpleIniA& a_ini)
 	detail::get_value(a_ini, fixScriptPageAllocation, section, "bFixScriptPageAllocation", ";Fix unintentionally allocating script pages when getting largest available page, but out of memory.");
 	detail::get_value(a_ini, fixIsHostileToActorCrash, section, "bFixIsHostileToActorCrash", ";Fix crash when passing in NONE object to script function Actor.IsHostileToActor().");
 	detail::get_value(a_ini, fixDelayedScriptBreakage, section, "bFixDelayedScriptBreakage", ";Fix scripts that don't load right away breaking completely if they reference an invalid object type (Ex: SuperSecretScript has a function that takes InvalidScript as a parameter).");
+	detail::get_value(a_ini, fixRecursionOverflow, section, "bFixRecursionOverflow", ";Prevent scripts from nested super deep recursion (1000+ calls deep), which greatly impacts FPS");
 }
 
 void Settings::VMTweaks::Load(CSimpleIniA& a_ini)

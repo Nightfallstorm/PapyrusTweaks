@@ -15,7 +15,7 @@ namespace logger = SKSE::log;
 namespace string = Util::stl::string;
 
 using namespace std::literals;
-static constexpr auto jumpTrampolineSize = 0x14;
+
 namespace stl
 {
 	using namespace SKSE::stl;

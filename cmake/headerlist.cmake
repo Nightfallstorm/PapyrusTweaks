@@ -1,10 +1,25 @@
 set(headers ${headers}
 	src/PCH.h
-	src/ModifyHooks.h
-	src/LoggerHooks.h
-	src/ExperimentalHooks.h
-	src/VRHooks.h
-	src/Settings.h
 	src/Util.h
-	src/Papyrus.h
+	src/api/Papyrus.h
+	src/configuration/Settings.h
+	src/hooks/Hooks.h
+	src/hooks/fix/DelayedScript.h
+	src/hooks/fix/IsHostileToActor.h
+	src/hooks/fix/Recursion.h
+	src/hooks/fix/ScriptPage.h
+	src/hooks/fix/ToggleScript.h
+	src/hooks/log/GetFormFromFile.h
+	src/hooks/log/ValidationSignatures.h
+	src/hooks/performance/MaxOps.h
+	src/hooks/performance/NativeSpeedUp.h
+	src/hooks/performance/NoMemoryLimit.h
+	src/hooks/tweak/BaseTypeMismatch.h
+	src/hooks/tweak/BypassCorruptSave.h
+	src/hooks/tweak/DebugMode.h
+	src/hooks/tweak/DisableMissingScriptError.h
+	src/hooks/tweak/NoPropertyOnScript.h
+	src/hooks/tweak/StackDump.h
+	src/hooks/tweak/SummarizeStackDump.h
+	src/hooks/tweak/VRPlayroom.h
 )

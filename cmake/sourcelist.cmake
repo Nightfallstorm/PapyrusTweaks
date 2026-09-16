@@ -1,6 +1,25 @@
 set(sources ${sources}
-	src/main.cpp
 	src/PCH.cpp
-	src/Settings.cpp
-	src/Papyrus.cpp
+	src/api/Papyrus.cpp
+	src/configuration/Settings.cpp
+	src/hooks/Hooks.cpp
+	src/hooks/fix/DelayedScript.cpp
+	src/hooks/fix/IsHostileToActor.cpp
+	src/hooks/fix/Recursion.cpp
+	src/hooks/fix/ScriptPage.cpp
+	src/hooks/fix/ToggleScript.cpp
+	src/hooks/log/GetFormFromFile.cpp
+	src/hooks/log/ValidationSignatures.cpp
+	src/hooks/performance/MaxOps.cpp
+	src/hooks/performance/NativeSpeedUp.cpp
+	src/hooks/performance/NoMemoryLimit.cpp
+	src/hooks/tweak/BaseTypeMismatch.cpp
+	src/hooks/tweak/BypassCorruptSave.cpp
+	src/hooks/tweak/DebugMode.cpp
+	src/hooks/tweak/DisableMissingScriptError.cpp
+	src/hooks/tweak/NoPropertyOnScript.cpp
+	src/hooks/tweak/StackDump.cpp
+	src/hooks/tweak/SummarizeStackDump.cpp
+	src/hooks/tweak/VRPlayroom.cpp
+	src/main.cpp
 )

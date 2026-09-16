@@ -1,10 +1,7 @@
-#include "ExperimentalHooks.h"
-#include "LoggerHooks.h"
-#include "ModifyHooks.h"
-#include "Papyrus.h"
-#include "Settings.h"
-#include "VRHooks.h"
 #include "Version.h"
+#include "api/Papyrus.h"
+#include "configuration/Settings.h"
+#include "hooks/Hooks.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
@@ -34,24 +31,16 @@ extern "C" DLLEXPORT const char* APIENTRY GetPluginVersion()
 
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
-	// TODO: Incorporate RecursionMonitor
-	// TODO: Re-do log level appropriately
-	// TODO: Re-evaluate logs to ensure no on-hook logging on release builds
 	auto logLevel = spdlog::level::info;
 #ifdef _DEBUG
 	logLevel = spdlog::level::debug;
 #endif
 
-	constexpr auto totalTrampolineSize = ModifyHooks::hookTrampolineSize
-	+ LoggerHooks::hookTrampolineSize
-	+ VRHooks::hookTrampolineSize
-	+ ExperimentalHooks::hookTrampolineSize;
-
 	const auto initInfo = SKSE::InitInfo {
 		.log = true,
 		.logLevel = logLevel,
 		.trampoline = true,
-		.trampolineSize = totalTrampolineSize
+		.trampolineSize = hooks::getHookTrampolineSize()
 	};
 	SKSE::Init(a_skse, initInfo);
 
@@ -64,10 +53,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 		logger::error("Exception caught when loading settings! Default settings will be used");
 	}
 
-	ModifyHooks::InstallHooks();
-	LoggerHooks::InstallHooks();
-	VRHooks::InstallHooks();
-	ExperimentalHooks::InstallHooks();
+	hooks::InstallHooks();
 
 	auto papyrus = SKSE::GetPapyrusInterface();
 	papyrus->Register(Papyrus::Bind);

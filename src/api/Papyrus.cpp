@@ -1,6 +1,6 @@
 #include "Papyrus.h"
-#include "Settings.h"
-#include "ExperimentalHooks.h"
+#include "../configuration/Settings.h"
+#include "../hooks/performance/NativeSpeedUp.h"
 #include "Version.h"
 
 namespace Papyrus
@@ -17,12 +17,12 @@ namespace Papyrus
 
 	bool DisableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*)
 	{
-		ExperimentalHooks::CallableFromTaskletInterceptHook::ExcludeStackFromSpeedUp(stackID);
+		hooks::performance::nativespeedup::CallableFromTaskletInterceptHook::ExcludeStackFromSpeedUp(stackID);
 		return true;
 	}
 
 	bool EnableFastMode(VM*, StackID stackID, RE::StaticFunctionTag*) {
-		ExperimentalHooks::CallableFromTaskletInterceptHook::UnexcludeStackFromSpeedup(stackID);	
+		hooks::performance::nativespeedup::CallableFromTaskletInterceptHook::UnexcludeStackFromSpeedup(stackID);
 		return true;
 	}
 
