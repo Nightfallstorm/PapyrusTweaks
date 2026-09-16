@@ -14,7 +14,7 @@ endif ()
 
 set(NAME "PapyrusTweaks")
 set(AUTHOR "nightfallstorm")
-set(VERSION 4.1.1)
+set(VERSION 4.2.0)
 
 
 # For Clang-CL only, ensures IDEs like CLION properly see CLIB-NG headers
