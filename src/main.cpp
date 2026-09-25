@@ -55,6 +55,8 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 
 	hooks::InstallHooks();
 
+	logger::info("Hooks installed");
+
 	auto papyrus = SKSE::GetPapyrusInterface();
 	papyrus->Register(Papyrus::Bind);
 	return true;

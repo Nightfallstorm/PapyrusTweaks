@@ -29,7 +29,7 @@ namespace hooks::performance::nativespeedup
 			SwapCallableFromTaskletCheck(std::uintptr_t jmpIfCheckPasses, std::uintptr_t jmpIfCheckFails, std::uintptr_t func)
 			{
 				Xbyak::Label funcLabel;
-				mov(rdx, r14b);  // move a_callableFromTasklets into place, a_function is already in place
+				movzx(edx, r14b);  // move a_callableFromTasklets into place, a_function is already in place
 				mov(r8, rbx);    // move a_stack into place
 
 				// Note: We don't need to add/substract from the OS stack because we are overwriting a different call function (function->canBeCalledFromTasklets())
@@ -61,11 +61,9 @@ namespace hooks::performance::nativespeedup
 
 			auto stackCheckCode = SwapCallableFromTaskletCheck(shouldCallImmediately.address(), shouldSuspend.address(), reinterpret_cast<uintptr_t>(callableFromTaskletCheckIntercept));
 			REL::safe_fill(target.address(), REL::NOP, 0xD);
-
 			auto& trampoline = SKSE::GetTrampoline();
 			auto result = trampoline.allocate(stackCheckCode);
-			auto& trampoline2 = SKSE::GetTrampoline();
-			trampoline2.write_branch<5>(target.address(), (std::uintptr_t)result);
+			trampoline.write_branch<5>(target.address(), (std::uintptr_t)result);
 
 			logger::info("CallableFromTaskletInterceptHook hooked at address {:x}", target.address());
 			logger::info("CallableFromTaskletInterceptHook hooked at offset {:x}", target.offset());

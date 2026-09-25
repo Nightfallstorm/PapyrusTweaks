@@ -23,6 +23,10 @@ namespace hooks::tweak::debugmode
 			if (!Settings::GetSingleton()->VMtweaks.enableDocStrings) {
 				return;
 			}
+			if (REL::Module::IsAtLeast({1,7,104,0})) {
+				logger::info("Disabling EnableLoadDocStrings hook for AE 1.7");
+				return;
+			}
 			const REL::Relocation target{ RELOCATION_ID(53108, 53919), REL::VariantOffset(0x604, 0x664, 0x604) };
 			stl::write_thunk_call<EnableLoadDocStrings>(target.address());
 			logger::info("EnableLoadDocStrings hooked at address {:x}", target.address());
@@ -47,6 +51,10 @@ namespace hooks::tweak::debugmode
 		static void Install()
 		{
 			if (!Settings::GetSingleton()->VMtweaks.enableDebugInfo) {
+				return;
+			}
+			if (REL::Module::IsAtLeast({1,7,104,0})) {
+				logger::info("Disabling EnableLoadDebugInformation hook for AE 1.7");
 				return;
 			}
 			const REL::Relocation target{ RELOCATION_ID(53108, 53919), REL::VariantOffset(0x604, 0x664, 0x604) };
